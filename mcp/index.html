@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MCP overview — IgelTools Docs</title>
-<meta name="description" content="How the IgelTools apps expose control to external agents with Model Context Protocol servers: transports, registration, tools, security and status.">
+<meta name="description" content="IgelTools MCP status: the launcher server, registration, conventions, and why the Apple apps do not expose MCP servers yet.">
 <meta name="theme-color" content="#0c0e12">
 <link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -42,14 +42,16 @@
     <h2>Agents</h2>
     <a href="index.html">MCP overview</a>
     <a href="../apps/igellauncher.html#mcp">Launcher tools</a>
-    <a href="../apps/igelserver.html#mcp">Server tools</a>
+    <a href="../apps/igelserver.html#mcp">Server status</a>
+    <a href="../apps/igeltvremote.html#mcp">TVRemote status</a>
+    <a href="../apps/igelnotes.html#mcp">Notes status</a>
     <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
   </aside>
 
   <main class="docs-content" id="main">
     <p class="breadcrumb"><a href="../index.html">Docs</a> / MCP</p>
-    <h1>Every app, controllable by an agent.</h1>
-    <p class="lede">IgelTools treats an agent as another user of the same app. Each app ships a Model Context Protocol server over stdio, with the same limits as the window, documented tool schemas and no secrets in results.</p>
+    <h1>One app, one server, for now.</h1>
+    <p class="lede">IgelTools treats an agent as another user of the same app, but only where a real server exists. IgelLauncher ships one over stdio. IgelServer, Igel TVRemote and IgelNotes do not; their current agent surface is App Intents or nothing.</p>
 
     <div class="doc-meta">
       <span class="pill pill--green">Protocol 2025-06-18</span>
@@ -70,28 +72,28 @@
         </tr>
         <tr>
           <td><strong>IgelServer</strong></td>
-          <td><code>igelserver-mcp</code></td>
-          <td>stdio</td>
-          <td>Available in source</td>
-          <td><a href="../apps/igelserver.html#mcp">12 tools</a></td>
+          <td>—</td>
+          <td>—</td>
+          <td>No server in the current tree</td>
+          <td><a href="../apps/igelserver.html#mcp">Status</a></td>
         </tr>
         <tr>
           <td><strong>Igel TVRemote</strong></td>
-          <td><code>igeltvremote-mcp</code></td>
-          <td>stdio</td>
-          <td>Contract v1; macOS server next</td>
-          <td><a href="../apps/igeltvremote.html#mcp">9 tools</a></td>
+          <td>—</td>
+          <td>—</td>
+          <td>Not implemented; App Intents only</td>
+          <td><a href="../apps/igeltvremote.html#mcp">Status</a></td>
         </tr>
         <tr>
           <td><strong>IgelNotes</strong></td>
-          <td><code>igelnotes-mcp</code></td>
-          <td>stdio</td>
-          <td>Contract v1; macOS server next</td>
-          <td><a href="../apps/igelnotes.html#mcp">9 tools</a></td>
+          <td>—</td>
+          <td>—</td>
+          <td>Not implemented; App Intents only</td>
+          <td><a href="../apps/igelnotes.html#mcp">Status</a></td>
         </tr>
       </tbody>
     </table>
-    <p>The Apple servers are the next milestone because they need a macOS build of their app's store and Keychain. Their contracts are frozen so clients can be written now.</p>
+    <p>The Apple apps do not have servers today. IgelServer's Rust helper was removed with its Tauri client, and Igel TVRemote and IgelNotes expose App Intents but no MCP binary. A future server would need a macOS process that opens the app's own store and Keychain, so these remain design targets rather than contracts with a binary behind them.</p>
 
     <h2 id="register">Register a server</h2>
     <h3>Claude Desktop / Claude Code style configuration</h3>
@@ -101,20 +103,12 @@
     "igellauncher": {
       "command": "/home/you/.local/bin/igellauncher",
       "args": ["mcp"]
-    },
-    "igelserver": {
-      "command": "/home/you/.local/bin/igelserver-mcp",
-      "env": {
-        "IGELSERVER_SUDO_PASSWORD": "…",
-        "IGELSERVER_QBIT_PASSWORD": "…"
-      }
     }
   }
 }</code></pre>
 
     <h3>Claude Code</h3>
-    <pre><code>claude mcp add igellauncher -- /home/you/.local/bin/igellauncher mcp
-claude mcp add igelserver -- /home/you/.local/bin/igelserver-mcp</code></pre>
+    <pre><code>claude mcp add igellauncher -- /home/you/.local/bin/igellauncher mcp</code></pre>
 
     <h3>Any stdio client</h3>
     <p>Start the binary as a child process and exchange one JSON object per line on stdin/stdout. The first exchange is:</p>
@@ -127,11 +121,12 @@ claude mcp add igelserver -- /home/you/.local/bin/igelserver-mcp</code></pre>
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}</code></pre>
 
     <h2 id="conventions">Conventions</h2>
+    <p>The launcher implements the following conventions. They are the rules a future server for any of the Apple apps would have to follow.</p>
     <ul>
-      <li><strong>Tools only.</strong> The servers expose <code>tools</code>; <code>resources/list</code> and <code>prompts/list</code> return empty arrays.</li>
+      <li><strong>Tools only.</strong> The server exposes <code>tools</code>; <code>resources/list</code> and <code>prompts/list</code> return empty arrays.</li>
       <li><strong>Text results.</strong> A successful call returns one <code>text</code> content block with pretty-printed JSON. A failed tool returns <code>isError: true</code> and a readable message.</li>
       <li><strong>Annotations.</strong> Read-only tools set <code>readOnlyHint</code>; tools that use the network set <code>openWorldHint</code>. A host can use them to require approval.</li>
-      <li><strong>No secrets.</strong> Settings report <code>github_token_set</code>; profiles report <code>password_set</code>. Tokens and passwords are never returned.</li>
+      <li><strong>No secrets.</strong> The launcher reports <code>github_token_set</code>. A future server that reads profiles would report <code>password_set</code> and similar booleans. Tokens and passwords are never returned.</li>
       <li><strong>Logging.</strong> stderr and the app log only. stdout is the protocol channel.</li>
       <li><strong>Local process.</strong> No TCP listener. To reach another machine, run the MCP server on the machine that owns the app.</li>
     </ul>
@@ -140,7 +135,7 @@ claude mcp add igelserver -- /home/you/.local/bin/igelserver-mcp</code></pre>
     <ul>
       <li>An MCP server is as powerful as the app it belongs to. Only register servers in agents you trust, and gate write tools with the host's approval mechanism.</li>
       <li>Prefer read-only tools for exploration; ask the agent to call <code>list_*</code> before actions.</li>
-      <li>Keep the launcher's GitHub token and the server's sudo/qBittorrent passwords in the MCP client's environment, not in prompts or logs.</li>
+      <li>Keep the launcher's GitHub token in the MCP client's environment, not in prompts or logs.</li>
       <li>Review the install path before granting a launcher install: the checksum is enforced, but the target directory comes from Settings.</li>
       <li>Run the server as the same user as the app; do not run it as root.</li>
     </ul>
@@ -152,15 +147,12 @@ claude mcp add igelserver -- /home/you/.local/bin/igelserver-mcp</code></pre>
         <tr><td><em>No release published</em></td><td>The repository is private or has no releases. Add a GitHub token in the launcher, or publish a tagged release.</td></tr>
         <tr><td><em>rate-limit</em></td><td>GitHub's unauthenticated limit was reached. Add a token; the launcher maps this to a readable error.</td></tr>
         <tr><td><em>checksum mismatch</em></td><td>The asset and the published checksum disagree. The download is deleted; do not install it manually.</td></tr>
-        <tr><td><em>not paired</em> (TVRemote)</td><td>Pair the TV in the app first. Pairing needs a prompt or PIN at the TV.</td></tr>
-        <tr><td>SSH failure (IgelServer)</td><td>The MCP server uses the system <code>ssh</code> with the profile's key and <code>BatchMode=yes</code>. Password-only profiles need an agent/key; read the stderr in the tool result.</td></tr>
-        <tr><td>Sudo failure</td><td>Set <code>IGELSERVER_SUDO_PASSWORD</code>, or allow the operation with passwordless sudo for that unit.</td></tr>
       </tbody>
     </table>
 
     <h2 id="roadmap">Roadmap</h2>
     <ul>
-      <li>macOS servers for Igel TVRemote and IgelNotes, following their v1 contracts.</li>
+      <li>Servers for IgelServer, Igel TVRemote and IgelNotes, built as macOS processes that reuse each app's store and Keychain.</li>
       <li>Optional Streamable HTTP transport for agents that cannot start a process.</li>
       <li>MCP resources for release notes and app documentation, and prompts for common workflows.</li>
       <li>In-place launcher self-update, which the MCP surface will expose once the window can do it.</li>

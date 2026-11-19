@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IgelServer — IgelTools Docs</title>
-<meta name="description" content="IgelServer documentation: profiles, SSH model, vault, telemetry, systemd, Docker, qBittorrent and the igelserver-mcp server.">
+<meta name="description" content="IgelServer documentation: native macOS and iOS SSH clients, profiles, LAN/Tailscale routing, telemetry, systemd, Docker, qBittorrent, SMB, credential vault and release pipeline.">
 <meta name="theme-color" content="#0c0e12">
 <link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -43,162 +43,192 @@
     <a href="#overview">Overview</a>
     <a href="#functional">Functional</a>
     <a href="#technical">Technical</a>
-    <a href="#mcp">MCP server</a>
-    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+    <a href="#storage">Storage and security</a>
+    <a href="#build">Build and release</a>
+    <a href="#mcp">MCP status</a>
+    <span class="side-note">Clients: macOS 14+ · iOS 27<br>Transport: system SSH / SwiftNIO SSH<br>No agent on the server.</span>
   </aside>
 
   <main class="docs-content" id="main">
     <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / IgelServer</p>
     <h1>IgelServer</h1>
-    <p class="lede">A remote console for a headless Linux server over SSH: telemetry, systemd, Docker and qBittorrent, from a Mac or a Steam Deck.</p>
+    <p class="lede">Native Apple clients for a headless Linux server over SSH: telemetry, systemd, Docker, qBittorrent, processes, logs, SMB shares and an encrypted credential vault. macOS and iOS are separate UIs over the same server profile model.</p>
 
     <div class="doc-meta">
-      <span class="pill pill--green">macOS + Linux builds</span>
-      <span class="pill">Rust · Tauri · SwiftUI</span>
-      <span class="pill pill--green">MCP available</span>
-      <span class="pill pill--amber">No release yet</span>
+      <span class="pill pill--blue">macOS 14+ · iOS 27</span>
+      <span class="pill">Swift 6 · SwiftUI · SwiftPM</span>
+      <span class="pill pill--amber">v2.2.0 · DMG</span>
+      <span class="pill pill--amber">No MCP server</span>
     </div>
 
     <h2 id="overview">Overview</h2>
-    <p>IgelServer keeps server profiles and connects over SSH to the host you already administer. There is no agent on the server and no IgelTools relay. The Linux build is Rust with Tauri; the macOS app is SwiftUI. Both talk to the same kind of server profile.</p>
+    <p>IgelServer keeps server profiles on the client and connects to the host you already administer. There is no agent installed on the server and no IgelTools relay. The client platform is Apple-only; the remote host can be any Linux or Unix machine reachable over SSH.</p>
+    <p>Two clients exist in the repository. The macOS app is a Swift Package Manager executable named <code>ServerPulse</code> (the historical target name) built with SwiftUI and some AppKit integration. The iOS app is a separate Xcode project under <code>ios/</code>, written for iOS 27 with Observation, strict concurrency and Liquid Glass. They share the concepts of a profile and a command set, not a codebase or a database.</p>
 
     <h2 id="functional">Functional documentation</h2>
     <h3>What you can do</h3>
     <ul>
-      <li><strong>Profiles.</strong> Host, port, user, authentication method, SSH key path, timeouts and qBittorrent settings.</li>
-      <li><strong>Telemetry.</strong> CPU, memory, swap, disk partitions, uptime, load and live network throughput, polled every few seconds.</li>
-      <li><strong>systemd.</strong> List services, see failed units, start/stop/restart, and read journal lines without a terminal pager.</li>
-      <li><strong>Docker.</strong> List containers (running and stopped), start/stop/restart, and stream logs.</li>
-      <li><strong>qBittorrent.</strong> List torrents, add magnet links or torrent URLs, pause, resume and delete.</li>
-      <li><strong>App Hub.</strong> A launchpad for the web interfaces on the server, opened in the default browser.</li>
+      <li><strong>Profiles.</strong> Name, host, port, user, SSH key path or password, optional Tailscale host, route preference, qBittorrent port/user/password/save path. Demo profiles are included and do not touch a real server.</li>
+      <li><strong>Telemetry.</strong> Hostname, OS, kernel, CPU model and count, uptime, load average, CPU percentage from <code>/proc/stat</code> deltas, memory and swap, disk mounts, network throughput, active users, failed units and the reboot-required flag.</li>
+      <li><strong>systemd.</strong> List services with load/active/sub state, start, stop and restart with sudo, and read journal lines.</li>
+      <li><strong>Docker.</strong> List running and stopped containers, start/stop/restart and read the last 100 log lines.</li>
+      <li><strong>qBittorrent.</strong> List torrents, add magnet links, URLs or <code>.torrent</code> files, pause, resume and delete with optional file removal.</li>
+      <li><strong>Processes.</strong> A live process table with CPU and memory usage; kill by PID after confirmation.</li>
+      <li><strong>Terminal.</strong> A command runner with quick commands, a timeout and no full PTY; it can also open the native macOS Terminal with the SSH session.</li>
+      <li><strong>Logs.</strong> System journal output with copy and reload.</li>
+      <li><strong>App Hub.</strong> A catalog of web interfaces plus user-added apps and containers auto-discovered by exposed web port, opened in the default browser, with an optional localhost mapping.</li>
+      <li><strong>SMB shares.</strong> Read the server's <code>smb.conf</code>, mount a share in Finder, eject it and restart Samba.</li>
+      <li><strong>Maintenance.</strong> Clean package caches, journal and Docker data on Ubuntu/Debian, or ostree/Flatpak caches on Bazzite; check system updates; check and install app updates.</li>
+      <li><strong>Credentials.</strong> A vault for SSH, sudo and service passwords, with biometric or login-password unlock.</li>
     </ul>
+
+    <h3>macOS window</h3>
+    <p>The sidebar is grouped into monitoring, server control and security. The sections are: Panoramica, App del Server, Servizi Systemd, Container Docker, qBittorrent, Processi, Terminale SSH, Log di Sistema, Manutenzione, Credenziali and Server &amp; Connessione.</p>
+
+    <h3>iOS app</h3>
+    <p>The iPhone and iPad app is a touch-first client, not a port of the Mac window. Five tabs: <strong>Panoramica</strong> (telemetry), <strong>Server</strong> (systemd and Docker), <strong>Torrent</strong>, <strong>Console</strong> (command runner) and <strong>Impostazioni</strong>. It reconnects when the app becomes active and disconnects when it goes to the background.</p>
 
     <h3>First run</h3>
     <ol>
-      <li>Open the app and edit the default profile in <strong>Configurazione</strong>: host, user and authentication.</li>
-      <li>Use an SSH key where possible. The key stays on the local machine; the server sees only the public key.</li>
-      <li>Unlock the vault to store passwords and sudo secrets.</li>
-      <li>Connect. The profile's host key is verified on first use and pinned.</li>
+      <li>Edit a profile in <strong>Server &amp; Connessione</strong>: host, port, user and authentication.</li>
+      <li>Prefer a key over a password. On macOS the key stays in <code>~/.ssh</code>; on iOS the key can live in the Secure Enclave and its public half is added to <code>authorized_keys</code>.</li>
+      <li>Unlock the vault before entering secrets, or let the app prompt for them.</li>
+      <li>Connect. The host key is accepted on first use and pinned afterwards; a different key aborts the connection.</li>
     </ol>
 
     <h3>Limitations</h3>
     <ul>
-      <li>The interactive terminal is a command runner with a timeout, not a full PTY yet.</li>
-      <li>qBittorrent control assumes its WebUI is reachable at the profile's host and port; a separate tunnel is the user's choice.</li>
-      <li>The macOS and Linux builds are packaged by the project pipeline; no public release exists yet.</li>
+      <li>There is no Linux, Windows or Steam Deck client in the current tree. The Tauri/Rust client was removed; the server you connect to is still arbitrary.</li>
+      <li>There is no MCP server. The former Rust <code>igelserver-mcp</code> crate was removed with the Tauri client.</li>
+      <li>The terminal is a command runner with a timeout, not an interactive PTY.</li>
+      <li>The macOS vault file is rewritten in place, so an interrupted save can truncate it; keep a backup if the contents matter.</li>
+      <li>macOS and iOS keep separate profiles; there is no profile sync between them.</li>
+      <li>The iOS target requires the iOS 27 SDK and Xcode 27. There is no App Store build; the macOS client is distributed as a DMG.</li>
+      <li>qBittorrent control expects its WebUI on the profile's port, reachable directly or through an SSH-tunnelled <code>curl</code> on the server.</li>
     </ul>
 
     <h2 id="technical">Technical documentation</h2>
-    <h3>Architecture</h3>
+    <h3>Repository layout</h3>
+    <pre><code>IgelServer/
+├── macos/                      # Swift Package, no third-party dependencies
+│   ├── Sources/ServerPulse/    # App, Models, Services, Views, Theme
+│   ├── Tests/                  # 87 Swift tests
+│   ├── build_app.sh            # .app bundle + optional signing
+│   └── build_dmg.sh            # DMG via hdiutil + optional notarization
+├── ios/                        # Xcode project, iOS 27 target
+│   ├── IgelServer/             # App, Models, Services, Views
+│   └── IgelServerTests/        # parser and TOFU tests
+├── docs/
+└── ci.sh                       # test, build, release, release-public</code></pre>
+
+    <h3>macOS architecture</h3>
     <ul>
-      <li><strong>Linux:</strong> Rust workspace, Tauri v2 shell, a library crate with modules for SSH, telemetry, systemd, Docker, qBittorrent, config, vault, updater and Tauri commands.</li>
-      <li><strong>macOS:</strong> Swift 6 and SwiftUI, with its own profile and Keychain integration.</li>
-      <li><strong>Connection:</strong> one multiplexed SSH session per profile (libssh2 on Linux), commands serialised to avoid interleaving on a blocking session.</li>
+      <li><code>Package.swift</code> declares macOS 14, an executable product <code>ServerPulse</code> and no dependencies.</li>
+      <li><strong>Models:</strong> <code>ServerProfile</code>, <code>SystemMetrics</code>, <code>SystemdService</code>, <code>DockerContainer</code>, <code>TorrentItem</code>, <code>ProcessItem</code>, <code>ServerShare</code>, <code>WebServiceApp</code>, <code>CredentialItem</code>.</li>
+      <li><strong>Services:</strong> <code>SSHService</code>, <code>MetricsService</code>, <code>QBittorrentService</code>, <code>VaultService</code>, <code>ConfigService</code>, <code>UpdateService</code>, <code>FinderService</code>, <code>NetworkRouteService</code>, <code>AppHubService</code>, <code>CacheStore</code>.</li>
+      <li><strong>State:</strong> <code>AppState</code> is the single observable used by the SwiftUI views; it owns the telemetry loop and the selected section.</li>
     </ul>
 
-    <h3>Storage</h3>
+    <h3>SSH execution model</h3>
+    <ul>
+      <li>The macOS client runs <code>/usr/bin/ssh</code> as a child process. It does not link libssh2 and does not implement SSH itself.</li>
+      <li>Options include <code>StrictHostKeyChecking=accept-new</code>, <code>ControlPath=~/.ssh/serverpulse-%C</code> and <code>BatchMode=yes</code> when no password prompt is required. <code>--</code> terminates option parsing before the destination, so a host or user starting with <code>-</code> cannot inject options.</li>
+      <li>Password authentication uses a generated <code>~/.ssh/serverpulse_askpass.sh</code> helper, avoiding passwords in process arguments. Sudo passwords go to <code>sudo -S</code> on stdin.</li>
+      <li>The default command timeout is 12 seconds; interactive commands use shorter timeouts. Timeouts terminate the child process and are reported as <code>TIMEOUT</code>.</li>
+      <li>A per-profile queue allows at most 4 concurrent commands per profile and 8 globally. Interactive work outranks telemetry, duplicate in-flight commands are deduplicated, and queued telemetry for the same command is conflated.</li>
+      <li>A circuit breaker opens after 3 consecutive telemetry failures and backs off for 12 seconds, so a sleeping host does not produce a pile of failing SSH processes.</li>
+    </ul>
+
+    <h3>Polling and cache</h3>
+    <p>The telemetry loop changes frequency with the visible section, and service calls are cached with TTLs to avoid re-running expensive remote commands.</p>
+    <table>
+      <thead><tr><th>Data</th><th>Poll interval</th><th>Cache TTL</th></tr></thead>
+      <tbody>
+        <tr><td>Overview metrics</td><td>2.5 s</td><td>3 s</td></tr>
+        <tr><td>Torrents</td><td>2.5 s</td><td>—</td></tr>
+        <tr><td>Processes</td><td>3 s</td><td>3.5 s</td></tr>
+        <tr><td>Docker containers</td><td>5 s</td><td>10 s</td></tr>
+        <tr><td>systemd services</td><td>8 s</td><td>15 s</td></tr>
+        <tr><td>Other sections</td><td>6 s</td><td>—</td></tr>
+        <tr><td>Disk mounts</td><td>with metrics</td><td>45 s</td></tr>
+        <tr><td>Static host specs</td><td>on connect</td><td>900 s</td></tr>
+        <tr><td>Logs</td><td>on demand</td><td>15 s</td></tr>
+      </tbody>
+    </table>
+    <p>Metrics are parsed from <code>/proc/uptime</code>, <code>/proc/stat</code>, <code>/proc/loadavg</code>, <code>/proc/diskstats</code>, <code>/proc/net/dev</code>, <code>free -b</code>, <code>df -h -P</code>, <code>who</code>, <code>systemctl --failed</code> and the <code>/var/run/reboot-required</code> marker. Static specs come from <code>uname</code>, <code>/etc/os-release</code>, <code>nproc</code> and <code>/proc/cpuinfo</code>.</p>
+
+    <h3>LAN and Tailscale routing</h3>
+    <ul>
+      <li>A profile can carry a primary LAN host and an optional Tailscale host.</li>
+      <li><code>RoutePreference</code> is <code>auto</code>, <code>lanOnly</code> or <code>tailscaleOnly</code>. In auto mode the client compares the current IPv4 interfaces with the profile's subnet and picks the LAN address at home, the Tailscale address elsewhere.</li>
+      <li>The resolved route is cached in memory and persisted in UserDefaults so a cold start does not wait for network discovery. <code>NWPathMonitor</code> invalidates the cache when the interface set changes.</li>
+      <li>Every command and web URL uses <code>profile.activeHost</code>, so a route change affects telemetry, SSH, qBittorrent and App Hub together.</li>
+    </ul>
+
+    <h3>qBittorrent transport</h3>
+    <p>The client talks to the qBittorrent Web API at <code>/api/v2</code>. It first tries the active host and port directly, then falls back to <code>curl</code> on the server against <code>127.0.0.1</code>, which covers a WebUI bound to loopback. Session cookies are kept per host in memory. Pause/resume prefer the qBittorrent 5 <code>stop</code>/<code>start</code> endpoints and fall back to the 4.x <code>pause</code>/<code>resume</code> names.</p>
+
+    <h2 id="storage">Storage and security</h2>
     <table>
       <thead><tr><th>Item</th><th>Location</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td>Profiles</td><td><code>~/.config/ServerPulse/config.json</code></td><td>Directory 0700, file 0600, atomic replacement.</td></tr>
-        <tr><td>Vault</td><td><code>~/.config/ServerPulse/credentials_vault.enc</code></td><td>AES-256-GCM with Argon2id, bound to the machine; secrets are stripped from the config after unlock.</td></tr>
-        <tr><td>Known hosts</td><td>Platform SSH known-hosts store</td><td>Trust on first use, pinned afterwards; a mismatch aborts.</td></tr>
+        <tr><td>Profiles (macOS)</td><td><code>~/Library/Application Support/IgelServer/servers.json</code></td><td>Directory <code>0700</code>, file <code>0600</code>, atomic replacement. The legacy <code>ServerPulse</code> directory is migrated on first launch.</td></tr>
+        <tr><td>Vault (macOS)</td><td><code>~/Library/Application Support/IgelServer/credentials_vault.enc</code></td><td>AES-256-GCM. The key is a random 32-byte secret in the Keychain (service <code>com.serverpulse.macos.vault</code>) with a <code>.userPresence</code> ACL, so reading it triggers Touch ID or the login password.</td></tr>
+        <tr><td>Legacy vault key</td><td>Derived with HKDF-SHA256 from <code>IOPlatformUUID</code></td><td>Old vaults still open; they are migrated to the Keychain key on unlock.</td></tr>
+        <tr><td>Known hosts</td><td><code>~/.ssh/known_hosts</code></td><td>Trust on first use with <code>accept-new</code>, pinned afterwards; a mismatch aborts.</td></tr>
+        <tr><td>Profiles (iOS)</td><td>Application Support, <code>profiles.json</code></td><td>No secrets in the file.</td></tr>
+        <tr><td>Secrets (iOS)</td><td>Keychain, service <code>com.igeltools.igelserver.ios</code></td><td>SSH and qBittorrent secrets use <code>WhenUnlockedThisDeviceOnly</code>.</td></tr>
+        <tr><td>Host keys (iOS)</td><td>UserDefaults-backed <code>KnownHostsStore</code></td><td>TOFU with the same abort-on-mismatch rule.</td></tr>
       </tbody>
     </table>
-
-    <h3>Security model</h3>
     <ul>
-      <li>Passwords are never passed as process arguments. Sudo passwords go to <code>sudo -S</code> over the SSH channel's stdin.</li>
-      <li>Remote output is treated as untrusted; HTML is escaped. Unit and container identifiers are validated before entering a shell command.</li>
+      <li>Secrets are stripped from <code>servers.json</code> once the vault is unlocked. If the vault is locked, a password entered during an edit stays in the profile until the next unlock so an unrelated save cannot silently delete it.</li>
       <li>The vault protects secrets at rest against other local users and casual disk inspection, not against code execution as the same user.</li>
-      <li>Prefer keys over passwords, and Tailscale/WireGuard over exposing SSH or the qBittorrent WebUI to the internet.</li>
+      <li>Remote output is untrusted. Service and container identifiers are validated before entering a shell command, and SwiftUI renders text without HTML or script execution.</li>
+      <li>Prefer keys over passwords, and Tailscale or WireGuard over exposing SSH and the qBittorrent WebUI to the internet.</li>
     </ul>
 
-    <h3>Build</h3>
-    <pre><code>cd ServerManager
-cargo build -p serverpulse --release        # the Linux app
-cargo test -p serverpulse
-cargo build -p igelserver-mcp --release     # the MCP server, no Tauri needed</code></pre>
-    <p>The MCP crate is a workspace member (<code>mcp/</code>) and depends only on serde, serde_json and ureq, so it builds without the GTK/WebKit dependencies required by Tauri.</p>
+    <h3>iOS specifics</h3>
+    <ul>
+      <li>iOS cannot launch <code>/usr/bin/ssh</code>. The app speaks SSH in-process with Apple's SwiftNIO SSH and pins host keys with the same TOFU policy.</li>
+      <li>Auth methods are password (Keychain) and Secure Enclave: a P-256 key generated inside the chip, with the private key never leaving it.</li>
+      <li>The UI uses <code>.glassEffect</code> surfaces and system <code>TabView</code>/<code>NavigationStack</code>, with layouts for iPhone, iPad and iPhone Duo postures.</li>
+      <li><code>RefreshServerIntent</code> is exposed to Siri, Shortcuts and the iOS 27 Siri AI surface; it connects if needed and refreshes telemetry, containers, services and torrents.</li>
+      <li><code>PrivacyInfo.xcprivacy</code> declares the <code>UserDefaults</code> required-reason API (<code>CA92.1</code>). The Info.plist declares local-network access so SSH and the qBittorrent WebUI are reachable on the LAN.</li>
+    </ul>
 
-    <h2 id="mcp">MCP server</h2>
+    <h2 id="build">Build and release</h2>
+    <pre><code># macOS tests and iOS build-for-testing
+./ci.sh test
+
+# macOS .app + DMG (output: dist/IgelServer-v&lt;version&gt;-&lt;arch&gt;.dmg)
+./ci.sh build 2.2.0
+
+# iOS only
+./ci.sh test-ios
+./ci.sh build-ios
+
+# Release to the shared public repository and update the stable feed
+./ci.sh release v2.2.0
+./ci.sh release-public v2.2.0</code></pre>
+    <p>Signing and notarization are optional and driven by <code>CODESIGN_IDENTITY</code> and <code>NOTARY_PROFILE</code>. The DMG is the only macOS artifact. Updates read <code>channels/igelserver.json</code> from <code>Chuucommie/IgelTools-Releases</code> first, then fall back to the releases API. The feed publishes <code>macos-aarch64</code> and <code>macos-x86_64</code>; a DMG without an architecture token is rejected. Before replacing the bundle the installer verifies the code signature with <code>codesign</code> and Gatekeeper with <code>spctl</code>; unsigned updates are refused unless <code>SERVERPULSE_ALLOW_UNSIGNED_UPDATES=1</code> is set for local development.</p>
+    <p>Tags are namespaced <code>igelserver-v&lt;version&gt;</code> and the updater ignores releases that do not belong to IgelServer. The source repository is private; artifacts are published in the shared public release repository.</p>
+
+    <h2 id="mcp">MCP status</h2>
     <div class="doc-meta">
-      <span class="pill pill--green">Available in source</span>
-      <span class="pill">Binary: <code>igelserver-mcp</code></span>
-      <span class="pill">Config: app profiles</span>
+      <span class="pill pill--amber">Not implemented</span>
+      <span class="pill">No binary</span>
+      <span class="pill">No contract published</span>
     </div>
-    <p>The server is a small companion binary. It reads the same profiles as the app and uses the system <code>ssh</code> client for connections; it does not need the Tauri runtime.</p>
-
-    <h3>Build and register</h3>
-    <pre><code>cd ServerManager
-cargo build -p igelserver-mcp --release
-install -Dm755 target/release/igelserver-mcp ~/.local/bin/igelserver-mcp</code></pre>
-    <pre><code>{
-  "mcpServers": {
-    "igelserver": {
-      "command": "/home/you/.local/bin/igelserver-mcp",
-      "env": {
-        "IGELSERVER_SUDO_PASSWORD": "…",
-        "IGELSERVER_QBIT_PASSWORD": "…"
-      }
-    }
-  }
-}</code></pre>
-
-    <h3>Configuration resolution</h3>
-    <table>
-      <thead><tr><th>Thing</th><th>Source</th></tr></thead>
-      <tbody>
-        <tr><td>Profiles</td><td><code>IGELSERVER_CONFIG</code>, else <code>~/.config/ServerPulse/config.json</code>.</td></tr>
-        <tr><td>Active profile</td><td><code>active_profile_id</code>; every tool accepts an optional <code>profile</code> id.</td></tr>
-        <tr><td>SSH authentication</td><td>Key-based profiles: the profile's <code>key_path</code> (<code>~</code> expanded) with <code>ssh -i</code> and <code>BatchMode=yes</code>.</td></tr>
-        <tr><td>SSH agents</td><td>The system <code>ssh</code> client and the user's agent are honoured when no key path is required.</td></tr>
-        <tr><td>Sudo password</td><td><code>IGELSERVER_SUDO_PASSWORD</code>; otherwise <code>sudo -n</code> and the server reports the failure.</td></tr>
-        <tr><td>qBittorrent password</td><td>Profile <code>qbit_pass</code>, else <code>IGELSERVER_QBIT_PASSWORD</code>.</td></tr>
-      </tbody>
-    </table>
     <div class="callout callout--warn">
       <span class="dot" aria-hidden="true"></span>
-      <p><strong>Vault not opened by MCP.</strong> The encrypted vault is machine-bound and unlocked by the app. The MCP server cannot decrypt it, so password-only SSH profiles need an agent/key, and sudo/qBittorrent secrets come from the environment (or plaintext profile fields if they exist).</p>
+      <p><strong>No MCP server in the current tree.</strong> The Rust <code>igelserver-mcp</code> helper and its configuration resolution code were removed together with the Tauri client. Nothing in the repository starts a stdio server or exposes the app's operations as MCP tools.</p>
     </div>
-
-    <h3>Tools</h3>
-    <table>
-      <thead><tr><th>Tool</th><th>Arguments</th><th>Kind</th><th>What it does</th></tr></thead>
-      <tbody>
-        <tr><td><code>list_profiles</code></td><td>—</td><td>read</td><td>Profiles, active id, host/user/port; qBittorrent password only as a boolean.</td></tr>
-        <tr><td><code>ssh_check</code></td><td><code>profile?</code></td><td>read · network</td><td>Runs <code>hostname</code> over SSH and returns the exit code and output.</td></tr>
-        <tr><td><code>system_info</code></td><td><code>profile?</code></td><td>read · network</td><td>Host, kernel, uptime, memory, disk and CPU count.</td></tr>
-        <tr><td><code>list_units</code></td><td><code>profile?</code></td><td>read · network</td><td>systemd services with load/active/sub state and description.</td></tr>
-        <tr><td><code>unit_logs</code></td><td><code>unit</code>, <code>lines?</code>, <code>profile?</code></td><td>read · network</td><td><code>journalctl -u</code> tail, 1–2000 lines.</td></tr>
-        <tr><td><code>unit_action</code></td><td><code>unit</code>, <code>action</code>, <code>profile?</code></td><td>write · network</td><td><code>start</code>, <code>stop</code> or <code>restart</code> via sudo.</td></tr>
-        <tr><td><code>list_containers</code></td><td><code>profile?</code></td><td>read · network</td><td>Docker containers including stopped ones.</td></tr>
-        <tr><td><code>container_logs</code></td><td><code>container</code>, <code>lines?</code>, <code>profile?</code></td><td>read · network</td><td><code>docker logs --tail</code>, 1–2000 lines.</td></tr>
-        <tr><td><code>container_action</code></td><td><code>container</code>, <code>action</code>, <code>profile?</code></td><td>write · network</td><td><code>start</code>, <code>stop</code> or <code>restart</code>.</td></tr>
-        <tr><td><code>list_torrents</code></td><td><code>profile?</code></td><td>read · network</td><td>qBittorrent <code>/api/v2/torrents/info</code>.</td></tr>
-        <tr><td><code>add_torrent</code></td><td><code>url</code>, <code>profile?</code></td><td>write · network</td><td>Add a magnet link or torrent URL.</td></tr>
-        <tr><td><code>torrent_action</code></td><td><code>hash</code>, <code>action</code>, <code>profile?</code></td><td>write · network</td><td><code>pause</code>, <code>resume</code> or <code>delete</code>.</td></tr>
-      </tbody>
-    </table>
-
-    <h3>Validation and safety</h3>
-    <ul>
-      <li>Unit names accept only letters, digits, <code>- _ . @ :</code>; container names only letters, digits, <code>- _ .</code>; torrent hashes are hex, 8–64 characters.</li>
-      <li>There is no arbitrary-command tool. The MCP surface is the same set of operations as the app's commands.</li>
-      <li>Action tools are not read-only, so a host can gate them behind approval.</li>
-      <li>Sudo passwords are sent on stdin to <code>sudo -S</code>, never as an argument.</li>
-      <li>SSH uses <code>BatchMode=yes</code>: it never blocks waiting for a password prompt.</li>
-    </ul>
-
-    <h3>Example</h3>
-    <pre><code>{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
-  "name": "unit_action",
-  "arguments": {"profile": "home", "unit": "plexmediaserver.service", "action": "restart"}
-}}</code></pre>
+    <p>An MCP surface would have to reuse the Swift services rather than shell out: profiles from <code>ConfigService</code>, secrets from the vault, and commands through <code>SSHService</code>. Because the vault key is held in the Keychain with a user-presence ACL, a background agent could not unlock it silently, which constrains any future design. The macOS app still enforces the important rules on its own: no arbitrary-command tool is exposed to an agent, identifiers are validated, and secrets never leave the app.</p>
 
     <div class="docs-next">
       <span>Next</span>
-      <a href="igeltvremote.html">Igel TVRemote →</a>
+      <a href="igellauncher.html">IgelLauncher →</a>
     </div>
   </main>
 </div>

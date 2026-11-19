@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Igel TVRemote — IgelTools Docs</title>
-<meta name="description" content="Igel TVRemote documentation: discovery, pairing, supported TV protocols, architecture, credentials and the MCP contract.">
+<meta name="description" content="Igel TVRemote documentation: discovery, TV protocols and ports, pairing, credentials, capabilities, Apple Watch control, App Intents, tests and limitations.">
 <meta name="theme-color" content="#0c0e12">
 <link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -42,140 +42,216 @@
     <h2>On this page</h2>
     <a href="#overview">Overview</a>
     <a href="#functional">Functional</a>
+    <a href="#tvs">Supported TVs</a>
     <a href="#technical">Technical</a>
-    <a href="#mcp">MCP contract</a>
-    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+    <a href="#discovery">Discovery</a>
+    <a href="#credentials">Credentials</a>
+    <a href="#build">Build and test</a>
+    <a href="#mcp">MCP status</a>
+    <span class="side-note">macOS 13+ · iOS 17+ · watchOS 10+<br>LAN only, no cloud relay<br>No IgelTools account.</span>
   </aside>
 
   <main class="docs-content" id="main">
     <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / Igel TVRemote</p>
     <h1>Igel TVRemote</h1>
-    <p class="lede">A network remote for the smart TVs already on your Wi-Fi, for iPhone, Apple Watch and Mac. Discovery, one pairing per TV, then keys, text and wake-on-LAN.</p>
+    <p class="lede">A network remote for the smart TVs already on your Wi-Fi, for iPhone, Apple Watch and Mac. Discovery, one pairing per TV, then keys, text and wake-on-LAN over the local network.</p>
 
     <div class="doc-meta">
       <span class="pill pill--blue">macOS · iOS · watchOS</span>
       <span class="pill">Swift 6 · SwiftUI</span>
-      <span class="pill pill--amber">MCP contract v1</span>
+      <span class="pill pill--amber">No MCP server</span>
       <span class="pill pill--amber">No release yet</span>
     </div>
 
     <h2 id="overview">Overview</h2>
-    <p>The app discovers TVs over the local network, pairs once, keeps the credential in the Keychain and sends commands directly to the TV. There is no account, no cloud relay and no analytics. Commands go over the network, not infrared.</p>
+    <p>The app discovers TVs on the current network, pairs once, stores the credential in the Keychain and sends commands directly to the TV. There is no account, no cloud relay and no analytics. Commands travel over the network; there is no infrared emitter and therefore no line-of-sight requirement.</p>
+    <p>One Swift package holds the protocol adapters, discovery and persistence. The macOS app is a small SwiftUI window; the iOS and watchOS apps are generated from an XcodeGen project. The watch relays commands to its paired iPhone over WatchConnectivity, and the watch never talks to the TV directly.</p>
 
     <h2 id="functional">Functional documentation</h2>
     <h3>What you can do</h3>
     <ul>
-      <li>Find TVs on the current network, or enter an IP address manually.</li>
-      <li>Pair once per TV and reconnect automatically afterwards, including after a DHCP address change.</li>
-      <li>Send the full key set: d-pad, OK, back, home, menu, volume, mute, channel, playback, number pad and colour keys where the TV supports them.</li>
-      <li>Type text from the phone or computer keyboard instead of using an on-screen grid.</li>
-      <li>Wake a TV with Wake-on-LAN when its network interface stays alive in standby.</li>
-      <li>On Apple Watch, control through the paired iPhone: tap or tilt to navigate, Digital Crown for volume, plus a keypad and media screen.</li>
+      <li>Find TVs on the current network, or add one by IP address.</li>
+      <li>Pair once per TV and reconnect automatically, including after a DHCP address change.</li>
+      <li>Send the shared command set: d-pad, OK, back, home, menu, exit, source, info, guide, tools, volume, mute, channel, playback, number pad and colour keys where the platform supports them.</li>
+      <li>Enter text on the TV from the iPhone keyboard for protocols with a text channel.</li>
+      <li>Control the Mac with hardware keyboard shortcuts mapped to remote commands.</li>
+      <li>Wake a TV with Wake-on-LAN when its network interface stays alive in standby and its MAC address is known.</li>
+      <li>On Apple Watch, navigate by tapping or tilting the wrist, change volume with the Digital Crown, and use the keypad and media screens through the paired iPhone.</li>
+      <li>Ask Siri or Shortcuts to power a Samsung TV on or off, mute it, or change the volume.</li>
     </ul>
 
-    <h3>Supported TVs</h3>
+    <h3>Mac keyboard map</h3>
     <table>
-      <thead><tr><th>Platform</th><th>Port</th><th>Pairing</th><th>State</th></tr></thead>
+      <thead><tr><th>Key</th><th>Remote command</th></tr></thead>
+      <tbody>
+        <tr><td>Arrows</td><td>D-pad</td></tr>
+        <tr><td>Return</td><td>OK</td></tr>
+        <tr><td>Esc / Backspace</td><td>Back</td></tr>
+        <tr><td><code>+</code> / <code>-</code>, <code>V</code> / <code>B</code>, Shift+Up/Down</td><td>Volume up / down</td></tr>
+        <tr><td><code>M</code></td><td>Mute</td></tr>
+        <tr><td><code>[</code> / <code>]</code>, Cmd+Up/Down</td><td>Channel up / down</td></tr>
+        <tr><td><code>H</code></td><td>Home / Smart Hub</td></tr>
+        <tr><td>Space</td><td>Play / pause</td></tr>
+        <tr><td><code>S</code>, <code>I</code>, <code>E</code></td><td>Source, info, exit</td></tr>
+        <tr><td><code>0</code>–<code>9</code></td><td>Number pad</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Requirements and permissions</h3>
+    <ul>
+      <li>macOS 13 or later, iOS 17 or later, watchOS 10 or later; Swift 6 and Xcode 27.</li>
+      <li>Local Network permission on first launch. Without it, discovery returns no results because the platform blocks the socket before a packet leaves the device.</li>
+      <li>iPhone, Mac and watch must be on the same network as the TV. A watch controls through its paired iPhone.</li>
+    </ul>
+
+    <h2 id="tvs">Supported TVs</h2>
+    <table>
+      <thead><tr><th>Platform</th><th>Ports</th><th>Pairing</th><th>State</th></tr></thead>
       <tbody>
         <tr><td>Samsung Tizen</td><td>8001 / 8002</td><td>Allow the prompt on the TV; token kept per TV</td><td>Supported</td></tr>
         <tr><td>LG webOS</td><td>3000</td><td>Accept the prompt; client key kept</td><td>Supported</td></tr>
         <tr><td>Roku (ECP)</td><td>8060</td><td>None</td><td>Supported</td></tr>
-        <tr><td>Android TV / Google TV</td><td>6466 / 6467</td><td>6-character code shown on the TV</td><td>Supported</td></tr>
-        <tr><td>Vizio SmartCast</td><td>9000</td><td>4-digit PIN shown on the TV</td><td>Supported</td></tr>
-        <tr><td>Philips jointSPACE</td><td>1925</td><td>4-digit PIN shown on the TV</td><td>Supported</td></tr>
+        <tr><td>Android TV / Google TV</td><td>6466 / 6467</td><td>6-hex-digit code shown on the TV; client certificate becomes the credential</td><td>Supported</td></tr>
+        <tr><td>Vizio SmartCast</td><td>9000</td><td>4-digit PIN, auth token kept</td><td>Supported</td></tr>
+        <tr><td>Philips jointSPACE</td><td>1925</td><td>4-digit PIN grant</td><td>Supported</td></tr>
         <tr><td>Sony (IRCC)</td><td>80</td><td>Pre-shared key</td><td>Supported</td></tr>
         <tr><td>Panasonic VIERA</td><td>55000</td><td>None</td><td>Supported</td></tr>
-        <tr><td>Fire TV</td><td>5555</td><td>ADB, developer options required</td><td>Limited</td></tr>
+        <tr><td>Fire TV</td><td>43445 / 42989; 5555 ADB fallback</td><td>WhisperLink/JPAKE; ADB requires developer options and key approval</td><td>Limited</td></tr>
       </tbody>
     </table>
-    <p>Fire OS removed the local service third-party apps used for pairing. Control falls back to ADB, which only works with developer options and ADB debugging enabled. Apple TV and infrared-only TVs are not supported.</p>
+    <p>Fire OS removed the local Lightning service that third-party apps used for pairing. The preferred path is WhisperLink on ports 43445/42989. When that is unavailable, control falls back to ADB, which only works with developer options and ADB debugging enabled; the first connection asks you to approve the debugging key on the TV. Apple TV and infrared-only TVs are not supported.</p>
 
-    <h3>Requirements and permissions</h3>
-    <ul>
-      <li>macOS 13 or later, iOS 17 or later, watchOS 10 or later.</li>
-      <li>Local Network permission on first launch. Without it, discovery returns no results because the platform blocks the socket before a packet is sent.</li>
-      <li>iPhone, Mac and watch must be on the same network as the TV. A watch controls through its paired iPhone.</li>
-    </ul>
+    <h3>Capabilities per protocol</h3>
+    <table>
+      <thead><tr><th>Protocol</th><th>Text input</th><th>Apps</th><th>Wake-on-LAN</th><th>Colour keys</th><th>Number pad</th></tr></thead>
+      <tbody>
+        <tr><td>Samsung Tizen</td><td>Yes (client layer)</td><td>—</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>LG webOS</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Roku ECP</td><td>Yes</td><td>Yes</td><td>Yes</td><td>—</td><td>Yes</td></tr>
+        <tr><td>Android TV</td><td>Yes</td><td>Yes</td><td>Yes</td><td>—</td><td>Yes</td></tr>
+        <tr><td>Vizio SmartCast</td><td>—</td><td>Yes</td><td>Yes</td><td>—</td><td>Yes</td></tr>
+        <tr><td>Philips jointSPACE</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Sony IRCC</td><td>—</td><td>Yes</td><td>Yes</td><td>—</td><td>Yes</td></tr>
+        <tr><td>Panasonic VIERA</td><td>—</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Fire TV Lightning</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td><td>Yes</td></tr>
+        <tr><td>Fire TV ADB</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td><td>Yes</td></tr>
+      </tbody>
+    </table>
 
     <h2 id="technical">Technical documentation</h2>
     <h3>Package layout</h3>
+    <pre><code>IgelTVRemote/
+├── IgelTVRemoteCore/       # Swift package: discovery, adapters, persistence
+│   ├── Lightning/          # Fire TV WhisperLink: Thrift, JPAKE, crypto
+│   ├── Models/             # SavedTV, TVCommand, TVBrand, protocol IDs
+│   ├── Network/            # SSDP, Bonjour, subnet sweep, port probe, WOL
+│   ├── Persistence/        # store.json, Keychain token and credential stores
+│   └── Protocols/          # one adapter per TV platform + TLS/ADB helpers
+├── IgelTVRemoteMac/        # Swift package: IgelTVRemoteKit + executable
+├── IgelTVRemoteiOS/        # XcodeGen project: iOS target, embeds watch app
+├── IgelTVRemoteWatch/      # watchOS sources: connectivity, motion, views
+├── SharedResources/        # Italian localization
+├── appStore/               # listing drafts, review notes, privacy policy
+├── scripts/                # packaging, icons, autosign daemon
+└── tests/                  # shell test runners</code></pre>
+
+    <h3>Architecture</h3>
     <ul>
-      <li><code>SamsungRemoteCore</code> is the shared Swift package: discovery, one adapter per protocol, persistence and keychain access.</li>
-      <li><code>SamsungRemoteMac</code> is the macOS app target; the iOS and watchOS targets are generated from <code>SamsungRemoteiOS/project.yml</code> with XcodeGen.</li>
-      <li><code>TVRemoteAdapterFactory</code> maps a <code>TVProtocolID</code> to an adapter; <code>TVRemoteSession</code> is the protocol-agnostic facade used by both apps.</li>
+      <li><code>IgelTVRemoteCore</code> declares macOS 13, iOS 17 and watchOS 10. Its only external dependency is <code>attaswift/BigInt</code>, used by the JPAKE exchange for Fire TV.</li>
+      <li>Every non-Samsung platform implements <code>TVRemoteAdapter</code>: <code>connect</code>, <code>disconnect</code>, <code>send(_ command: TVCommand)</code>, <code>sendText</code> and <code>currentCredential</code>.</li>
+      <li><code>TVRemoteAdapterFactory</code> maps a <code>TVProtocolID</code> to an adapter. Samsung is the exception: the factory returns <code>nil</code>, because Samsung keeps its own WebSocket client and key vocabulary.</li>
+      <li><code>TVRemoteSession</code> is the protocol-agnostic facade used by the iOS and macOS clients for every non-Samsung TV. It guards the adapter and credential state with a lock and owns the adapter lifetime.</li>
+      <li>The UI only sees <code>TVCommand</code> and <code>TVCapabilities</code>; it never learns which protocol is behind a TV. The UI hides unsupported keys instead of sending commands that would fail.</li>
     </ul>
 
-    <h3>Discovery</h3>
-    <p>Three sources run in parallel: SSDP on <code>239.255.255.250:1900</code>, Bonjour records (<code>_amzn-wplay._tcp</code> for Fire TV, <code>_androidtvremote2._tcp</code> for Android TV), and a scan of the local subnet that probes the candidate ports. A probe returns the device description plus the protocol that can actually control it, which can be more specific than the brand.</p>
+    <h3>Protocol implementations</h3>
+    <table>
+      <thead><tr><th>Adapter</th><th>Transport</th><th>Credential</th></tr></thead>
+      <tbody>
+        <tr><td>Samsung Tizen</td><td>WebSocket, <code>wss</code>/<code>ws</code></td><td>Token from the TV prompt, per TV</td></tr>
+        <tr><td>LG webOS</td><td>WebSocket with a client key</td><td>Client key returned after pairing</td></tr>
+        <tr><td>Roku ECP</td><td>HTTP keypress endpoints</td><td>None</td></tr>
+        <tr><td>Android TV</td><td>TLS Remote v2 with a self-signed client certificate</td><td>Certificate identity plus a pairing flag</td></tr>
+        <tr><td>Vizio SmartCast</td><td>HTTPS pairing, WebSocket control</td><td>Auth token from <code>/pairing/pair</code></td></tr>
+        <tr><td>Philips jointSPACE</td><td>HTTP pairing, HTTP commands</td><td><code>auth_key</code> from the PIN grant</td></tr>
+        <tr><td>Sony IRCC</td><td>HTTP SOAP with IRCC codes</td><td>Pre-shared key</td></tr>
+        <tr><td>Panasonic VIERA</td><td>HTTP control endpoint</td><td>None</td></tr>
+        <tr><td>Fire TV Lightning</td><td>WhisperLink over TLS with JPAKE</td><td>Session key from the handshake</td></tr>
+        <tr><td>Fire TV ADB</td><td>ADB over TCP</td><td>ADB key, reusing <code>~/.android/adbkey</code> if present</td></tr>
+      </tbody>
+    </table>
 
-    <h3>Credentials and storage</h3>
+    <h2 id="discovery">Discovery</h2>
+    <p>Discovery runs several sources in parallel and merges the results by stable identity:</p>
+    <ul>
+      <li><strong>SSDP</strong> on <code>239.255.255.250:1900</code>, sent from every broadcast-capable IPv4 interface. Samsung uses <code>urn:samsung.com:device:RemoteControlReceiver:1</code> with <code>MediaRenderer</code> as a fallback target.</li>
+      <li><strong>Bonjour</strong> records for <code>_amzn-wplay._tcp</code> (Fire TV) and <code>_androidtvremote2._tcp</code> (Android TV).</li>
+      <li><strong>Subnet sweep</strong> over the active local subnet, probing candidate ports with non-blocking sockets so a dead host does not stall the sweep. This finds TVs on networks that filter multicast.</li>
+    </ul>
+    <p><code>MultiBrandProbe</code> only accepts private IPv4 addresses. It probes <code>6466</code>, <code>43445</code>, <code>8001</code>, <code>8060</code>, <code>3000</code> and <code>1925</code> first; the thorough pass adds <code>42989</code>, <code>55000</code> and <code>9000</code>, plus port <code>80</code> for Sony when enabled. An open port is not treated as proof of a platform: LG on 3000 is accepted only after a real <code>101 Switching Protocols</code>, and Roku and Philips must return a valid device description before they are claimed.</p>
+
+    <h2 id="credentials">Credentials and storage</h2>
     <table>
       <thead><tr><th>Item</th><th>Where</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td>Saved TVs and networks</td><td>Atomic JSON file in Application Support</td><td>The app's <code>AppRepository</code>; no secrets.</td></tr>
-        <tr><td>Pairing tokens</td><td>Platform Keychain, one entry per TV</td><td>Opaque JSON credential blobs; different protocols store different fields.</td></tr>
-        <tr><td>Device identity</td><td>Persisted by name</td><td>Required by protocols that pin a client identity.</td></tr>
+        <tr><td>Saved TVs, networks, settings</td><td><code>Application Support/IgelTVRemote/store.json</code></td><td>Atomic JSON written by <code>AppRepository</code>; no secrets.</td></tr>
+        <tr><td>Pairing tokens and credentials</td><td>Keychain, service <code>com.ricardo.igeltvremote.tokens</code></td><td>Accessible <code>AfterFirstUnlockThisDeviceOnly</code>. One generic-password item per TV and client identity.</td></tr>
+        <tr><td>Account key</td><td><code>tv-token.&lt;tvID&gt;.&lt;sha256(pairingIdentity)&gt;</code></td><td>Tokens are never keyed by IP, because addresses change across networks and DHCP leases.</td></tr>
+        <tr><td>Protocol credential</td><td>JSON <code>TVCredential</code> blob in the same Keychain item</td><td>Different protocols store different fields; removing a TV removes all of them.</td></tr>
+        <tr><td>Client identity</td><td>Generated once and reused</td><td>Self-signed certificate for Android TV and WhisperLink; ADB reuses <code>~/.android/adbkey</code> when it exists.</td></tr>
       </tbody>
     </table>
+    <p>A saved TV keeps its stable <code>id</code>, display name, model, OS, DUID, Wi-Fi and wired MACs, last known IP and port, pairing identity, network ids and per-TV settings (auto-connect, Wake-on-LAN and MAC preference, transport preference, legacy WebSocket, favourite keys). A DHCP change updates the address, not the identity. Legacy builds stored tokens by IP; the token store has a migration path that adopts such a token when the discovered TV validates the address.</p>
 
-    <h3>Build and test</h3>
-    <pre><code># macOS app
+    <h3>Wake-on-LAN</h3>
+    <p>The magic packet is sent to the subnet broadcast address derived from the TV's IP and netmask, using either MAC. The app only offers the button when a MAC is known. Fire TV exposes no MAC, so it is woken through ADB instead: <code>adbd</code> stays reachable in standby and the power key brings it back. On iOS the app does not offer Wake-on-LAN at all, because it would need the multicast/broadcast entitlement.</p>
+
+    <h3>Apple Watch</h3>
+    <ul>
+      <li>A <code>WatchConnectivityManager</code> sends <code>send_key</code> and <code>send_text</code> messages to the iPhone, which owns the TV session. Application context carries the active TV identity and token so the watch can label the remote.</li>
+      <li>The Digital Crown drives volume through a speed-adaptive leaky bucket, avoiding one key event per crown tick.</li>
+      <li>A CoreMotion classifier runs at about 33 Hz, recognises wrist tilt for navigation and a fist-clench trigger, and emits haptics when the gesture clutch engages or releases.</li>
+      <li>The watch UI includes a d-pad, keypad/channel screen and a media/system screen.</li>
+    </ul>
+
+    <h3>App Intents</h3>
+    <p>The iOS target ships five Samsung-specific intents: power off, power on (Wake-on-LAN plus a power key), mute, volume up and volume down. They run without opening the app and read the active TV from <code>AppRepository</code>. If no TV is saved, they return a dialog asking the user to add one.</p>
+
+    <h2 id="build">Build and test</h2>
+    <pre><code># macOS app bundle (ad-hoc signed)
 ./scripts/package_mac_app.sh
 open "dist/Igel TV Remote.app"
 
-# core tests (22) and macOS tests (23)
-(cd SamsungRemoteCore &amp;&amp; swift test)
-(cd SamsungRemoteMac &amp;&amp; swift test)</code></pre>
-    <p>Hardware and live-network suites are opt-in with <code>LIVE_SCAN</code>, <code>LIVE_ADB</code>, <code>LIVE_FIRETV</code>, <code>TLS_TEST_HOST</code> and <code>RUN_SLOW_CRYPTO</code>.</p>
+# Core and macOS test suites
+(cd IgelTVRemoteCore &amp;&amp; swift test)   # 22 tests
+(cd IgelTVRemoteMac &amp;&amp; swift test)    # 23 tests
 
-    <h2 id="mcp">MCP contract</h2>
+# Everything, including the shell suites and autosign checks
+./tests/run_all_tests.sh
+
+# Regenerate the iOS/watchOS project after editing project.yml
+cd IgelTVRemoteiOS
+xcodegen generate</code></pre>
+    <p>Hardware and live-network suites are opt-in: <code>LIVE_SCAN=1</code> for discovery, <code>LIVE_ADB=1</code> with <code>LIVE_ADB_HOST</code> for Fire TV ADB, <code>LIVE_FIRETV=1</code> for the WhisperLink handshake, <code>TLS_TEST_HOST</code> for mutual TLS and <code>RUN_SLOW_CRYPTO=1</code> for the full JPAKE exchange. Two snapshot tests are skipped without a desktop session. CI runs both Swift suites on pushes and pull requests, and compiles the iOS and watchOS targets unsigned.</p>
+    <p>For distribution, replace the ad-hoc signature with a Developer ID identity and notarize the result; the iOS and watchOS targets need your development team under Signing &amp; Capabilities. A local LaunchAgent can re-sign and reinstall the iOS app every 12 hours, because free provisioning expires after 7 days.</p>
+
+    <h3>Limitations</h3>
+    <ul>
+      <li>Apple TV is not supported. There is no infrared, so IR-only TVs cannot be controlled.</li>
+      <li>Fire TV is marked <em>Limited</em>: without developer options and ADB debugging, a current Fire OS device cannot be controlled at all.</li>
+      <li>On iPhone, raw SSDP needs the <code>com.apple.developer.networking.multicast</code> entitlement. Until it is granted, discovery relies on Bonjour and the subnet scan, and Wake-on-LAN is not offered.</li>
+      <li>Roku OS 14.1 requires Settings → System → Advanced system settings → Control by mobile apps to be enabled, or key presses return 401.</li>
+      <li>A pairing token is tied to the client identity. A build with a different bundle identifier counts as a new client and must pair again.</li>
+      <li>Nothing has been released yet. The App Store metadata is being prepared in <code>appStore/</code>.</li>
+    </ul>
+
+    <h2 id="mcp">MCP status</h2>
     <div class="doc-meta">
-      <span class="pill pill--amber">Contract v1</span>
-      <span class="pill pill--amber">macOS server next</span>
-      <span class="pill">Binary: <code>igeltvremote-mcp</code></span>
+      <span class="pill pill--amber">Not implemented</span>
+      <span class="pill">No binary</span>
+      <span class="pill">Local-only app</span>
     </div>
-    <div class="callout callout--warn">
-      <span class="dot" aria-hidden="true"></span>
-      <p><strong>Status.</strong> The tool contract below is frozen for the first server release. The implementation is a macOS 13+ executable built from <code>SamsungRemoteCore</code>; it is the next milestone for this app. It is documented here so clients and agents can be built against a stable surface.</p>
-    </div>
-
-    <h3>Design</h3>
-    <ul>
-      <li>Runs on the Mac that already has the app's saved TVs and Keychain credentials. It reads the same <code>AppRepository</code> file and <code>TVTokenStore</code>.</li>
-      <li>Only controls TVs that were paired in the app. Pairing needs a human at the TV (prompt or PIN), so it stays in the app; an unpaired TV returns a clear error.</li>
-      <li>Commands are serialised per TV. Long discovery calls have a timeout.</li>
-      <li>The server exposes no network listener; transport is stdio.</li>
-    </ul>
-
-    <h3>Tools</h3>
-    <table>
-      <thead><tr><th>Tool</th><th>Arguments</th><th>Kind</th><th>What it does</th></tr></thead>
-      <tbody>
-        <tr><td><code>list_tvs</code></td><td>—</td><td>read</td><td>Saved TVs: id, name, brand, protocol, last known address, active flag, paired flag.</td></tr>
-        <tr><td><code>discover_tvs</code></td><td><code>timeout_seconds?</code></td><td>read · LAN</td><td>Runs discovery and returns probe results; 1–60 s, default 8.</td></tr>
-        <tr><td><code>connect_tv</code></td><td><code>tv_id</code></td><td>write · LAN</td><td>Connects using the saved credential. Fails with <em>not paired</em> if the TV is unknown.</td></tr>
-        <tr><td><code>disconnect_tv</code></td><td><code>tv_id</code></td><td>write</td><td>Closes the session.</td></tr>
-        <tr><td><code>send_key</code></td><td><code>tv_id</code>, <code>key</code></td><td>write · LAN</td><td>One key from the shared <code>TVCommand</code> set: navigation, volume, playback, numbers, colour keys.</td></tr>
-        <tr><td><code>send_text</code></td><td><code>tv_id</code>, <code>text</code></td><td>write · LAN</td><td>Text entry where the protocol supports it.</td></tr>
-        <tr><td><code>wake_tv</code></td><td><code>tv_id</code></td><td>write · LAN</td><td>Sends Wake-on-LAN to the saved MAC address.</td></tr>
-        <tr><td><code>get_capabilities</code></td><td><code>tv_id</code></td><td>read</td><td>Text input, colour keys, playback, power and volume support for the TV.</td></tr>
-        <tr><td><code>get_status</code></td><td><code>tv_id?</code></td><td>read</td><td>Connection state, active TV and protocol.</td></tr>
-      </tbody>
-    </table>
-
-    <h3>Example</h3>
-    <pre><code>{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
-  "name": "send_key",
-  "arguments": {"tv_id": "living-room", "key": "volume_up"}
-}}</code></pre>
-
-    <h3>Security rules</h3>
-    <ul>
-      <li>Credentials stay in the Keychain; tool results never include tokens or client keys.</li>
-      <li>LAN operations only. No cloud discovery and no remote relay.</li>
-      <li><code>send_key</code>, <code>send_text</code> and <code>wake_tv</code> are not read-only.</li>
-      <li>Pairing and unpairing stay in the app, where the user can see the TV prompt.</li>
-    </ul>
+    <p>There is no MCP server in the repository. Earlier documentation described a frozen <code>igeltvremote-mcp</code> contract, but no such binary or module exists in the current tree. If one is added, it would run on the Mac that owns the saved TVs and Keychain items, reuse <code>AppRepository</code> and <code>TVTokenStore</code>, and leave pairing in the app because a human must accept the prompt or enter the PIN. The App Intents remain the only supported automation surface today.</p>
 
     <div class="docs-next">
       <span>Next</span>

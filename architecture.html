@@ -42,22 +42,22 @@
     <h2>Agents</h2>
     <a href="mcp/index.html">MCP overview</a>
     <a href="apps/igellauncher.html#mcp">Launcher MCP</a>
-    <a href="apps/igelserver.html#mcp">Server MCP</a>
+    <a href="apps/igelserver.html#mcp">Server status</a>
     <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
   </aside>
 
   <main class="docs-content" id="main">
     <p class="eyebrow"><span class="num">Docs</span> / Architecture</p>
     <h1>Small, local, and honest about state.</h1>
-    <p class="lede">The apps share a narrow set of rules: talk to machines the user already owns, keep secrets on the device, publish only what actually builds, and expose the same surface to a person and to an agent.</p>
+    <p class="lede">The apps share a narrow set of rules: talk to machines the user already owns, keep secrets on the device, publish only what actually builds, and expose a capability to an agent only when a real interface exists.</p>
 
     <h2 id="principles">Principles</h2>
     <ul>
-      <li><strong>Local first.</strong> TVs are discovered on the LAN; the server is reached over SSH; notes live in the user's iCloud. There is no IgelTools relay and no IgelTools account.</li>
-      <li><strong>Native.</strong> SwiftUI on Apple platforms, Rust with egui or Tauri on Linux. No web view pretending to be an app.</li>
+      <li><strong>Local first.</strong> TVs are discovered on the LAN; the server is reached over SSH; notes live in a local SwiftData store, optionally synced to an Appwrite instance the user owns. There is no IgelTools relay and no IgelTools account.</li>
+      <li><strong>Native.</strong> SwiftUI, SwiftData and AppKit or UIKit on Apple platforms; Rust with egui in IgelLauncher. No web view pretending to be an app.</li>
       <li><strong>One job per app.</strong> The suite grows by addition, not by turning one app into four.</li>
       <li><strong>Published only when built.</strong> A platform is listed as available after it compiles. The same rule applies to MCP: a server is documented as available only when the binary exists.</li>
-      <li><strong>Agents are users too.</strong> Every app exposes the same capabilities through an MCP server, with the same limits as the window.</li>
+      <li><strong>Agents are users too.</strong> Where an MCP server exists, it exposes the same capabilities as the window, with the same limits. The launcher has one; the Apple apps do not yet.</li>
     </ul>
 
     <h2 id="storage">Storage and credentials</h2>
@@ -66,18 +66,18 @@
       <tbody>
         <tr>
           <td>Igel TVRemote</td>
-          <td>Saved TVs and networks in an atomic JSON file in Application Support.</td>
+          <td><code>Application Support/IgelTVRemote/store.json</code>, an atomic JSON file.</td>
           <td>Pairing tokens in the platform Keychain, one entry per TV.</td>
         </tr>
         <tr>
           <td>IgelNotes</td>
-          <td>Notes and blocks in SwiftData, synced through the user's CloudKit container.</td>
-          <td>AI provider keys in the Keychain; no IgelTools account.</td>
+          <td>Notes and blocks in a local SwiftData store. Optional Appwrite sync, configured by the user; CloudKit is not active.</td>
+          <td>AI provider keys and the Appwrite API key in the Keychain; no IgelTools account.</td>
         </tr>
         <tr>
           <td>IgelServer</td>
-          <td><code>~/.config/ServerPulse/config.json</code> (0600) for server profiles.</td>
-          <td>SSH, sudo and qBittorrent passwords in an encrypted vault (AES-256-GCM, Argon2id), bound to the machine.</td>
+          <td>macOS: <code>~/Library/Application Support/IgelServer/servers.json</code> (0600). iOS: <code>profiles.json</code> in the app sandbox.</td>
+          <td>macOS: encrypted vault (AES-256-GCM) whose random key is in the Keychain with a user-presence ACL. iOS: SSH and qBittorrent secrets in the Keychain.</td>
         </tr>
         <tr>
           <td>IgelLauncher</td>
@@ -88,8 +88,9 @@
     </table>
 
     <h2 id="releases">Releases and updates</h2>
-    <p>Every app publishes GitHub releases with per-platform, per-architecture assets. Artifact names carry the OS and CPU (<code>x86_64</code>, <code>aarch64</code>, <code>universal</code>) and the release publishes a checksum file.</p>
-    <p>IgelLauncher is the reference client for that contract:</p>
+    <p>Apps publish through the shared public repository <code>Chuucommie/IgelTools-Releases</code>. Tags are namespaced per app (<code>igelserver-v2.2.0</code>, and the equivalent for the others), so one repository can carry several apps without their assets colliding.</p>
+    <p>Artifact names carry the OS and CPU (<code>macos-aarch64</code>, <code>macos-x86_64</code>), and a release publishes a checksum file or per-asset SHA-256. IgelServer publishes a DMG only; a DMG without an architecture token is rejected. Its client reads <code>channels/igelserver.json</code> first (version, URL, SHA-256, size) and falls back to the releases API.</p>
+    <p>IgelLauncher is the reference client for the generic contract:</p>
     <ol>
       <li>Fetch releases for the app's repository (latest stable, or include pre-releases when enabled).</li>
       <li>Choose the best asset for the current OS and CPU — AppImage, tar.gz or DMG for the launcher's installers.</li>
@@ -103,7 +104,7 @@
     </div>
 
     <h2 id="mcp-rules">MCP conventions</h2>
-    <p>These rules are normative for every IgelTools MCP server.</p>
+    <p>These rules are normative for every IgelTools MCP server that exists. Today only IgelLauncher implements a server; the other apps document App Intents or no agent surface at all.</p>
     <table>
       <thead><tr><th>Rule</th><th>Value</th></tr></thead>
       <tbody>
@@ -144,7 +145,7 @@
       <thead><tr><th>Repository</th><th>Contents</th></tr></thead>
       <tbody>
         <tr><td><code>igeltools-web</code></td><td>Marketing: what each app is for, high-level capabilities, links to this documentation. No protocols, file paths, security details or MCP schemas.</td></tr>
-        <tr><td><code>IgelTools-docs</code> (this site)</td><td>Functional and technical documentation, limitations, storage, security and every MCP contract.</td></tr>
+        <tr><td><code>IgelTools-docs</code> (this site)</td><td>Functional and technical documentation, limitations, storage, security, the MCP conventions and the current server status.</td></tr>
         <tr><td>App repositories</td><td>Source, tests, packaging and release automation. Private until release.</td></tr>
       </tbody>
     </table>
