@@ -93,7 +93,11 @@
         </tr>
       </tbody>
     </table>
-    <p>The Apple apps do not have servers today. IgelServer's Rust helper was removed with its Tauri client, and Igel TVRemote and IgelNotes expose App Intents but no MCP binary. A future server would need a macOS process that opens the app's own store and Keychain, so these remain design targets rather than contracts with a binary behind them.</p>
+    <p>IgelLauncher is the only server today: it is a macOS binary with 13 tools. The other three apps do not have servers: IgelServer's Rust helper was removed with its Tauri client, and Igel TVRemote and IgelNotes expose App Intents but no MCP binary. A future server would need a macOS process that opens the app's own store and Keychain, so these remain design targets rather than contracts with a binary behind them.</p>
+    <div class="callout callout--warn">
+      <span class="dot" aria-hidden="true"></span>
+      <p><strong>Launcher annotation caveat.</strong> In the current source, <code>install_app</code>, <code>update_app</code> and <code>download_app</code> declare <code>readOnlyHint: true</code> although they write files. Do not rely on host approval prompts for those tools until the annotations are fixed. Details in the <a href="../apps/igellauncher.html#issues">launcher page</a>.</p>
+    </div>
 
     <h2 id="register">Register a server</h2>
     <h3>Claude Desktop / Claude Code style configuration</h3>
@@ -101,14 +105,14 @@
     <pre><code>{
   "mcpServers": {
     "igellauncher": {
-      "command": "/home/you/.local/bin/igellauncher",
+      "command": "/Users/you/Applications/IgelLauncher.app/Contents/MacOS/igellauncher",
       "args": ["mcp"]
     }
   }
 }</code></pre>
 
     <h3>Claude Code</h3>
-    <pre><code>claude mcp add igellauncher -- /home/you/.local/bin/igellauncher mcp</code></pre>
+    <pre><code>claude mcp add igellauncher -- /Users/you/Applications/IgelLauncher.app/Contents/MacOS/igellauncher mcp</code></pre>
 
     <h3>Any stdio client</h3>
     <p>Start the binary as a child process and exchange one JSON object per line on stdin/stdout. The first exchange is:</p>
@@ -127,7 +131,7 @@
       <li><strong>Text results.</strong> A successful call returns one <code>text</code> content block with pretty-printed JSON. A failed tool returns <code>isError: true</code> and a readable message.</li>
       <li><strong>Annotations.</strong> Read-only tools set <code>readOnlyHint</code>; tools that use the network set <code>openWorldHint</code>. A host can use them to require approval.</li>
       <li><strong>No secrets.</strong> The launcher reports <code>github_token_set</code>. A future server that reads profiles would report <code>password_set</code> and similar booleans. Tokens and passwords are never returned.</li>
-      <li><strong>Logging.</strong> stderr and the app log only. stdout is the protocol channel.</li>
+      <li><strong>Logging.</strong> The app log, with fatal startup errors on stderr. stdout is the protocol channel.</li>
       <li><strong>Local process.</strong> No TCP listener. To reach another machine, run the MCP server on the machine that owns the app.</li>
     </ul>
 
@@ -135,8 +139,8 @@
     <ul>
       <li>An MCP server is as powerful as the app it belongs to. Only register servers in agents you trust, and gate write tools with the host's approval mechanism.</li>
       <li>Prefer read-only tools for exploration; ask the agent to call <code>list_*</code> before actions.</li>
-      <li>Keep the launcher's GitHub token in the MCP client's environment, not in prompts or logs.</li>
-      <li>Review the install path before granting a launcher install: the checksum is enforced, but the target directory comes from Settings.</li>
+      <li>Keep the launcher's GitHub token in the MCP client's environment, not in prompts or logs. If it is saved in Settings, it is plain text in <code>settings.json</code>.</li>
+      <li>Review the install path before granting a launcher install: install and update enforce the checksum policy, but the target directory comes from Settings.</li>
       <li>Run the server as the same user as the app; do not run it as root.</li>
     </ul>
 

@@ -81,8 +81,8 @@
         </tr>
         <tr>
           <td>IgelLauncher</td>
-          <td><code>~/.local/share/igellauncher/</code>: receipts, logs, temporary downloads, updates.</td>
-          <td>Optional GitHub token in <code>~/.config/igellauncher/settings.json</code> (plain text; documented as such).</td>
+          <td><code>~/Library/Application Support/io.IgelTools.IgelLauncher/</code>: settings, receipts, logs, temporary downloads and updates.</td>
+          <td>Optional GitHub token in <code>settings.json</code> (plain text; documented as such).</td>
         </tr>
       </tbody>
     </table>
@@ -93,14 +93,14 @@
     <p>IgelLauncher is the reference client for the generic contract:</p>
     <ol>
       <li>Fetch releases for the app's repository (latest stable, or include pre-releases when enabled).</li>
-      <li>Choose the best asset for the current OS and CPU — AppImage, tar.gz or DMG for the launcher's installers.</li>
+      <li>Choose the best asset for this Mac — DMG, tar.gz, pkg or ZIP for macOS. DMG and tar.gz bundles are installed; pkg and ZIP are downloaded for the macOS installer or Finder.</li>
       <li>Find the expected SHA-256: the GitHub asset digest, or the matching line in <code>SHA256SUMS.txt</code> / <code>*.sha256</code>.</li>
       <li>Download, verify, then install. A mismatch deletes the file and stops.</li>
       <li>Record a receipt with version, path and install kind; the window and the MCP server read the same receipts.</li>
     </ol>
     <div class="callout callout--warn">
       <span class="dot" aria-hidden="true"></span>
-      <p><strong>No checksum, no install.</strong> By default the launcher refuses an asset without a published SHA-256. The setting can be turned off deliberately, and both the window and MCP report the choice.</p>
+      <p><strong>No checksum, no install.</strong> By default the launcher refuses to install an asset without a published SHA-256, in both the window and the MCP install/update tools. The setting can be turned off deliberately; download-only actions verify when a checksum exists but do not enforce the policy.</p>
     </div>
 
     <h2 id="mcp-rules">MCP conventions</h2>

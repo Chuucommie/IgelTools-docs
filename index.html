@@ -86,7 +86,7 @@
       <div class="doc-card">
         <span class="kicker">Suite management</span>
         <h3>IgelLauncher</h3>
-        <p>Installs, updates and opens the other three. Native Rust and egui, OS/CPU asset selection, SHA-256 verification and a stdio MCP server.</p>
+        <p>A macOS-only suite manager in Rust and egui: embedded catalog, CPU-aware asset selection, SHA-256 verification, DMG/tar.gz installs, receipts, updates and a 13-tool MCP server.</p>
         <p><a href="apps/igellauncher.html">Functional and technical docs →</a></p>
       </div>
     </div>
@@ -117,13 +117,13 @@
         </tr>
         <tr>
           <td><strong>IgelLauncher</strong></td>
-          <td>Linux (built), macOS (target)</td>
-          <td>In development; Linux release build runs</td>
-          <td><strong>Available in source:</strong> <code>igellauncher mcp</code></td>
+          <td>macOS 11+ (Rust/egui)</td>
+          <td>In development; v0.1.0 source, macOS builds and 30 tests</td>
+          <td><strong>Available in source:</strong> <code>igellauncher mcp</code> (13 tools)</td>
         </tr>
       </tbody>
     </table>
-    <p>Release state differs by app. IgelServer's source version is 2.2.0 and its pipeline is set up to publish a DMG update feed; the macOS, iOS and watchOS TVRemote targets and IgelNotes have no published release yet. The source repositories are private.</p>
+    <p>Release state differs by app. IgelServer's source version is 2.2.0 and its pipeline is set up to publish a DMG update feed; IgelLauncher is at 0.1.0; the macOS, iOS and watchOS TVRemote targets and IgelNotes have no published release yet. The source repositories are private.</p>
 
     <h2 id="agents">For agents</h2>
     <p>An MCP server is the suite's goal, not a shipped property of every app. <strong>IgelLauncher</strong> is the only current implementation. IgelServer lost its Rust <code>igelserver-mcp</code> helper when the Tauri client was removed, and Igel TVRemote and IgelNotes expose App Intents but no MCP server. The <a href="mcp/index.html">MCP overview</a> records that status, the conventions a future server must follow, and how to register the launcher.</p>
