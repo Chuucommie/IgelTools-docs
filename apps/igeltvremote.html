@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Igel TVRemote — IgelTools Docs</title>
+<meta name="description" content="Igel TVRemote documentation: discovery, pairing, supported TV protocols, architecture, credentials and the MCP contract.">
+<meta name="theme-color" content="#0c0e12">
+<link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/docs.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header docs-header" id="top">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html" aria-label="IgelTools Docs — home">
+      <img class="brand-mark" src="../assets/icons/igeltools-256.png" alt="" width="256" height="256">
+      <span class="brand-word">Igel<span>Tools</span></span>
+      <span class="docs-badge">Docs</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../index.html#apps">Apps</a>
+      <a href="../mcp/index.html">MCP</a>
+      <a class="nav-ext" href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing <span aria-hidden="true">↗</span></a>
+      <a class="nav-ext" href="https://github.com/Chuucommie" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap docs-layout">
+  <aside class="docs-sidebar">
+    <h2>Start</h2>
+    <a href="../index.html">Overview</a>
+    <a href="../architecture.html">Architecture</a>
+    <h2>Apps</h2>
+    <a href="igeltvremote.html">Igel TVRemote</a>
+    <a href="igelnotes.html">IgelNotes</a>
+    <a href="igelserver.html">IgelServer</a>
+    <a href="igellauncher.html">IgelLauncher</a>
+    <h2>On this page</h2>
+    <a href="#overview">Overview</a>
+    <a href="#functional">Functional</a>
+    <a href="#technical">Technical</a>
+    <a href="#mcp">MCP contract</a>
+    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+  </aside>
+
+  <main class="docs-content" id="main">
+    <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / Igel TVRemote</p>
+    <h1>Igel TVRemote</h1>
+    <p class="lede">A network remote for the smart TVs already on your Wi-Fi, for iPhone, Apple Watch and Mac. Discovery, one pairing per TV, then keys, text and wake-on-LAN.</p>
+
+    <div class="doc-meta">
+      <span class="pill pill--blue">macOS · iOS · watchOS</span>
+      <span class="pill">Swift 6 · SwiftUI</span>
+      <span class="pill pill--amber">MCP contract v1</span>
+      <span class="pill pill--amber">No release yet</span>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>The app discovers TVs over the local network, pairs once, keeps the credential in the Keychain and sends commands directly to the TV. There is no account, no cloud relay and no analytics. Commands go over the network, not infrared.</p>
+
+    <h2 id="functional">Functional documentation</h2>
+    <h3>What you can do</h3>
+    <ul>
+      <li>Find TVs on the current network, or enter an IP address manually.</li>
+      <li>Pair once per TV and reconnect automatically afterwards, including after a DHCP address change.</li>
+      <li>Send the full key set: d-pad, OK, back, home, menu, volume, mute, channel, playback, number pad and colour keys where the TV supports them.</li>
+      <li>Type text from the phone or computer keyboard instead of using an on-screen grid.</li>
+      <li>Wake a TV with Wake-on-LAN when its network interface stays alive in standby.</li>
+      <li>On Apple Watch, control through the paired iPhone: tap or tilt to navigate, Digital Crown for volume, plus a keypad and media screen.</li>
+    </ul>
+
+    <h3>Supported TVs</h3>
+    <table>
+      <thead><tr><th>Platform</th><th>Port</th><th>Pairing</th><th>State</th></tr></thead>
+      <tbody>
+        <tr><td>Samsung Tizen</td><td>8001 / 8002</td><td>Allow the prompt on the TV; token kept per TV</td><td>Supported</td></tr>
+        <tr><td>LG webOS</td><td>3000</td><td>Accept the prompt; client key kept</td><td>Supported</td></tr>
+        <tr><td>Roku (ECP)</td><td>8060</td><td>None</td><td>Supported</td></tr>
+        <tr><td>Android TV / Google TV</td><td>6466 / 6467</td><td>6-character code shown on the TV</td><td>Supported</td></tr>
+        <tr><td>Vizio SmartCast</td><td>9000</td><td>4-digit PIN shown on the TV</td><td>Supported</td></tr>
+        <tr><td>Philips jointSPACE</td><td>1925</td><td>4-digit PIN shown on the TV</td><td>Supported</td></tr>
+        <tr><td>Sony (IRCC)</td><td>80</td><td>Pre-shared key</td><td>Supported</td></tr>
+        <tr><td>Panasonic VIERA</td><td>55000</td><td>None</td><td>Supported</td></tr>
+        <tr><td>Fire TV</td><td>5555</td><td>ADB, developer options required</td><td>Limited</td></tr>
+      </tbody>
+    </table>
+    <p>Fire OS removed the local service third-party apps used for pairing. Control falls back to ADB, which only works with developer options and ADB debugging enabled. Apple TV and infrared-only TVs are not supported.</p>
+
+    <h3>Requirements and permissions</h3>
+    <ul>
+      <li>macOS 13 or later, iOS 17 or later, watchOS 10 or later.</li>
+      <li>Local Network permission on first launch. Without it, discovery returns no results because the platform blocks the socket before a packet is sent.</li>
+      <li>iPhone, Mac and watch must be on the same network as the TV. A watch controls through its paired iPhone.</li>
+    </ul>
+
+    <h2 id="technical">Technical documentation</h2>
+    <h3>Package layout</h3>
+    <ul>
+      <li><code>SamsungRemoteCore</code> is the shared Swift package: discovery, one adapter per protocol, persistence and keychain access.</li>
+      <li><code>SamsungRemoteMac</code> is the macOS app target; the iOS and watchOS targets are generated from <code>SamsungRemoteiOS/project.yml</code> with XcodeGen.</li>
+      <li><code>TVRemoteAdapterFactory</code> maps a <code>TVProtocolID</code> to an adapter; <code>TVRemoteSession</code> is the protocol-agnostic facade used by both apps.</li>
+    </ul>
+
+    <h3>Discovery</h3>
+    <p>Three sources run in parallel: SSDP on <code>239.255.255.250:1900</code>, Bonjour records (<code>_amzn-wplay._tcp</code> for Fire TV, <code>_androidtvremote2._tcp</code> for Android TV), and a scan of the local subnet that probes the candidate ports. A probe returns the device description plus the protocol that can actually control it, which can be more specific than the brand.</p>
+
+    <h3>Credentials and storage</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Where</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Saved TVs and networks</td><td>Atomic JSON file in Application Support</td><td>The app's <code>AppRepository</code>; no secrets.</td></tr>
+        <tr><td>Pairing tokens</td><td>Platform Keychain, one entry per TV</td><td>Opaque JSON credential blobs; different protocols store different fields.</td></tr>
+        <tr><td>Device identity</td><td>Persisted by name</td><td>Required by protocols that pin a client identity.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Build and test</h3>
+    <pre><code># macOS app
+./scripts/package_mac_app.sh
+open "dist/Igel TV Remote.app"
+
+# core tests (22) and macOS tests (23)
+(cd SamsungRemoteCore &amp;&amp; swift test)
+(cd SamsungRemoteMac &amp;&amp; swift test)</code></pre>
+    <p>Hardware and live-network suites are opt-in with <code>LIVE_SCAN</code>, <code>LIVE_ADB</code>, <code>LIVE_FIRETV</code>, <code>TLS_TEST_HOST</code> and <code>RUN_SLOW_CRYPTO</code>.</p>
+
+    <h2 id="mcp">MCP contract</h2>
+    <div class="doc-meta">
+      <span class="pill pill--amber">Contract v1</span>
+      <span class="pill pill--amber">macOS server next</span>
+      <span class="pill">Binary: <code>igeltvremote-mcp</code></span>
+    </div>
+    <div class="callout callout--warn">
+      <span class="dot" aria-hidden="true"></span>
+      <p><strong>Status.</strong> The tool contract below is frozen for the first server release. The implementation is a macOS 13+ executable built from <code>SamsungRemoteCore</code>; it is the next milestone for this app. It is documented here so clients and agents can be built against a stable surface.</p>
+    </div>
+
+    <h3>Design</h3>
+    <ul>
+      <li>Runs on the Mac that already has the app's saved TVs and Keychain credentials. It reads the same <code>AppRepository</code> file and <code>TVTokenStore</code>.</li>
+      <li>Only controls TVs that were paired in the app. Pairing needs a human at the TV (prompt or PIN), so it stays in the app; an unpaired TV returns a clear error.</li>
+      <li>Commands are serialised per TV. Long discovery calls have a timeout.</li>
+      <li>The server exposes no network listener; transport is stdio.</li>
+    </ul>
+
+    <h3>Tools</h3>
+    <table>
+      <thead><tr><th>Tool</th><th>Arguments</th><th>Kind</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>list_tvs</code></td><td>—</td><td>read</td><td>Saved TVs: id, name, brand, protocol, last known address, active flag, paired flag.</td></tr>
+        <tr><td><code>discover_tvs</code></td><td><code>timeout_seconds?</code></td><td>read · LAN</td><td>Runs discovery and returns probe results; 1–60 s, default 8.</td></tr>
+        <tr><td><code>connect_tv</code></td><td><code>tv_id</code></td><td>write · LAN</td><td>Connects using the saved credential. Fails with <em>not paired</em> if the TV is unknown.</td></tr>
+        <tr><td><code>disconnect_tv</code></td><td><code>tv_id</code></td><td>write</td><td>Closes the session.</td></tr>
+        <tr><td><code>send_key</code></td><td><code>tv_id</code>, <code>key</code></td><td>write · LAN</td><td>One key from the shared <code>TVCommand</code> set: navigation, volume, playback, numbers, colour keys.</td></tr>
+        <tr><td><code>send_text</code></td><td><code>tv_id</code>, <code>text</code></td><td>write · LAN</td><td>Text entry where the protocol supports it.</td></tr>
+        <tr><td><code>wake_tv</code></td><td><code>tv_id</code></td><td>write · LAN</td><td>Sends Wake-on-LAN to the saved MAC address.</td></tr>
+        <tr><td><code>get_capabilities</code></td><td><code>tv_id</code></td><td>read</td><td>Text input, colour keys, playback, power and volume support for the TV.</td></tr>
+        <tr><td><code>get_status</code></td><td><code>tv_id?</code></td><td>read</td><td>Connection state, active TV and protocol.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Example</h3>
+    <pre><code>{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
+  "name": "send_key",
+  "arguments": {"tv_id": "living-room", "key": "volume_up"}
+}}</code></pre>
+
+    <h3>Security rules</h3>
+    <ul>
+      <li>Credentials stay in the Keychain; tool results never include tokens or client keys.</li>
+      <li>LAN operations only. No cloud discovery and no remote relay.</li>
+      <li><code>send_key</code>, <code>send_text</code> and <code>wake_tv</code> are not read-only.</li>
+      <li>Pairing and unpairing stay in the app, where the user can see the TV prompt.</li>
+    </ul>
+
+    <div class="docs-next">
+      <span>Next</span>
+      <a href="igelnotes.html">IgelNotes →</a>
+    </div>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© <span id="year">2026</span> IgelTools Docs</span>
+      <span><a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing site</a> · <a href="https://github.com/Chuucommie/igeltools-docs" target="_blank" rel="noreferrer">Docs source</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/js/docs.js" defer></script>
+</body>
+</html>

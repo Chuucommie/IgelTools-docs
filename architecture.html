@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture — IgelTools Docs</title>
+<meta name="description" content="Shared architecture for the IgelTools suite: storage, security, releases, update model and the conventions every MCP server follows.">
+<meta name="theme-color" content="#0c0e12">
+<link rel="icon" href="assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header docs-header" id="top">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html" aria-label="IgelTools Docs — home">
+      <img class="brand-mark" src="assets/icons/igeltools-256.png" alt="" width="256" height="256">
+      <span class="brand-word">Igel<span>Tools</span></span>
+      <span class="docs-badge">Docs</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html#apps">Apps</a>
+      <a href="mcp/index.html">MCP</a>
+      <a class="nav-ext" href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing <span aria-hidden="true">↗</span></a>
+      <a class="nav-ext" href="https://github.com/Chuucommie" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap docs-layout">
+  <aside class="docs-sidebar">
+    <h2>Start</h2>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <h2>Apps</h2>
+    <a href="apps/igeltvremote.html">Igel TVRemote</a>
+    <a href="apps/igelnotes.html">IgelNotes</a>
+    <a href="apps/igelserver.html">IgelServer</a>
+    <a href="apps/igellauncher.html">IgelLauncher</a>
+    <h2>Agents</h2>
+    <a href="mcp/index.html">MCP overview</a>
+    <a href="apps/igellauncher.html#mcp">Launcher MCP</a>
+    <a href="apps/igelserver.html#mcp">Server MCP</a>
+    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+  </aside>
+
+  <main class="docs-content" id="main">
+    <p class="eyebrow"><span class="num">Docs</span> / Architecture</p>
+    <h1>Small, local, and honest about state.</h1>
+    <p class="lede">The apps share a narrow set of rules: talk to machines the user already owns, keep secrets on the device, publish only what actually builds, and expose the same surface to a person and to an agent.</p>
+
+    <h2 id="principles">Principles</h2>
+    <ul>
+      <li><strong>Local first.</strong> TVs are discovered on the LAN; the server is reached over SSH; notes live in the user's iCloud. There is no IgelTools relay and no IgelTools account.</li>
+      <li><strong>Native.</strong> SwiftUI on Apple platforms, Rust with egui or Tauri on Linux. No web view pretending to be an app.</li>
+      <li><strong>One job per app.</strong> The suite grows by addition, not by turning one app into four.</li>
+      <li><strong>Published only when built.</strong> A platform is listed as available after it compiles. The same rule applies to MCP: a server is documented as available only when the binary exists.</li>
+      <li><strong>Agents are users too.</strong> Every app exposes the same capabilities through an MCP server, with the same limits as the window.</li>
+    </ul>
+
+    <h2 id="storage">Storage and credentials</h2>
+    <table>
+      <thead><tr><th>App</th><th>Data</th><th>Secrets</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Igel TVRemote</td>
+          <td>Saved TVs and networks in an atomic JSON file in Application Support.</td>
+          <td>Pairing tokens in the platform Keychain, one entry per TV.</td>
+        </tr>
+        <tr>
+          <td>IgelNotes</td>
+          <td>Notes and blocks in SwiftData, synced through the user's CloudKit container.</td>
+          <td>AI provider keys in the Keychain; no IgelTools account.</td>
+        </tr>
+        <tr>
+          <td>IgelServer</td>
+          <td><code>~/.config/ServerPulse/config.json</code> (0600) for server profiles.</td>
+          <td>SSH, sudo and qBittorrent passwords in an encrypted vault (AES-256-GCM, Argon2id), bound to the machine.</td>
+        </tr>
+        <tr>
+          <td>IgelLauncher</td>
+          <td><code>~/.local/share/igellauncher/</code>: receipts, logs, temporary downloads, updates.</td>
+          <td>Optional GitHub token in <code>~/.config/igellauncher/settings.json</code> (plain text; documented as such).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="releases">Releases and updates</h2>
+    <p>Every app publishes GitHub releases with per-platform, per-architecture assets. Artifact names carry the OS and CPU (<code>x86_64</code>, <code>aarch64</code>, <code>universal</code>) and the release publishes a checksum file.</p>
+    <p>IgelLauncher is the reference client for that contract:</p>
+    <ol>
+      <li>Fetch releases for the app's repository (latest stable, or include pre-releases when enabled).</li>
+      <li>Choose the best asset for the current OS and CPU — AppImage, tar.gz or DMG for the launcher's installers.</li>
+      <li>Find the expected SHA-256: the GitHub asset digest, or the matching line in <code>SHA256SUMS.txt</code> / <code>*.sha256</code>.</li>
+      <li>Download, verify, then install. A mismatch deletes the file and stops.</li>
+      <li>Record a receipt with version, path and install kind; the window and the MCP server read the same receipts.</li>
+    </ol>
+    <div class="callout callout--warn">
+      <span class="dot" aria-hidden="true"></span>
+      <p><strong>No checksum, no install.</strong> By default the launcher refuses an asset without a published SHA-256. The setting can be turned off deliberately, and both the window and MCP report the choice.</p>
+    </div>
+
+    <h2 id="mcp-rules">MCP conventions</h2>
+    <p>These rules are normative for every IgelTools MCP server.</p>
+    <table>
+      <thead><tr><th>Rule</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Wire protocol</td><td>JSON-RPC 2.0 over newline-delimited JSON on stdio.</td></tr>
+        <tr><td>MCP protocol version</td><td><code>2025-06-18</code>; servers answer with the version they implement.</td></tr>
+        <tr><td>Handshake</td><td><code>initialize</code> → <code>notifications/initialized</code>. No other notification is required.</td></tr>
+        <tr><td>Discovery</td><td><code>tools/list</code> returns JSON Schema for every tool; <code>resources/list</code> and <code>prompts/list</code> may be empty.</td></tr>
+        <tr><td>Tool results</td><td>One <code>text</code> content block containing pretty-printed JSON. Tool failures use <code>isError: true</code>; protocol failures use JSON-RPC errors.</td></tr>
+        <tr><td>Logging</td><td>stderr or the app's log file. Never stdout.</td></tr>
+        <tr><td>Annotations</td><td><code>readOnlyHint</code> for inspection tools, <code>openWorldHint</code> for network operations.</td></tr>
+        <tr><td>Secrets</td><td>Never returned. Tokens and passwords are reported as boolean <code>*_set</code> fields.</td></tr>
+        <tr><td>Process model</td><td>Local child process, one per client session. No TCP listener yet.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Error codes</h3>
+    <table>
+      <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>-32700</code></td><td>Parse error.</td></tr>
+        <tr><td><code>-32601</code></td><td>Unknown method.</td></tr>
+        <tr><td><code>-32602</code></td><td>Invalid params (reserved; current servers report tool failures with <code>isError</code>).</td></tr>
+        <tr><td><code>isError: true</code></td><td>The tool ran and failed; the text explains why in the user's language where the app has one.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="security">Security model</h2>
+    <ul>
+      <li><strong>Local surface.</strong> MCP servers run as the user and only over stdio. An agent must already be able to start a local process to talk to them.</li>
+      <li><strong>Same powers as the window.</strong> If a tool can restart a service, the window can too. Tools that write are annotated so the host can require approval.</li>
+      <li><strong>Input validation.</strong> Identifiers are allowlisted (unit names, container names, torrent hashes, app ids); there is no arbitrary shell tool.</li>
+      <li><strong>Secrets stay in the app.</strong> The server reads them where the app already keeps them; tool results never include them.</li>
+      <li><strong>Verification.</strong> Launcher installs require a checksum by default, in both the GUI and MCP.</li>
+    </ul>
+
+    <h2 id="docs-policy">What lives where</h2>
+    <table>
+      <thead><tr><th>Repository</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>igeltools-web</code></td><td>Marketing: what each app is for, high-level capabilities, links to this documentation. No protocols, file paths, security details or MCP schemas.</td></tr>
+        <tr><td><code>IgelTools-docs</code> (this site)</td><td>Functional and technical documentation, limitations, storage, security and every MCP contract.</td></tr>
+        <tr><td>App repositories</td><td>Source, tests, packaging and release automation. Private until release.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="docs-next">
+      <span>Next</span>
+      <a href="mcp/index.html">MCP overview →</a>
+    </div>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© <span id="year">2026</span> IgelTools Docs</span>
+      <span><a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing site</a> · <a href="https://github.com/Chuucommie/igeltools-docs" target="_blank" rel="noreferrer">Docs source</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/docs.js" defer></script>
+</body>
+</html>

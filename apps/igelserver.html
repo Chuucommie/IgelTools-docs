@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IgelServer — IgelTools Docs</title>
+<meta name="description" content="IgelServer documentation: profiles, SSH model, vault, telemetry, systemd, Docker, qBittorrent and the igelserver-mcp server.">
+<meta name="theme-color" content="#0c0e12">
+<link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/docs.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header docs-header" id="top">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html" aria-label="IgelTools Docs — home">
+      <img class="brand-mark" src="../assets/icons/igeltools-256.png" alt="" width="256" height="256">
+      <span class="brand-word">Igel<span>Tools</span></span>
+      <span class="docs-badge">Docs</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../index.html#apps">Apps</a>
+      <a href="../mcp/index.html">MCP</a>
+      <a class="nav-ext" href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing <span aria-hidden="true">↗</span></a>
+      <a class="nav-ext" href="https://github.com/Chuucommie" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap docs-layout">
+  <aside class="docs-sidebar">
+    <h2>Start</h2>
+    <a href="../index.html">Overview</a>
+    <a href="../architecture.html">Architecture</a>
+    <h2>Apps</h2>
+    <a href="igeltvremote.html">Igel TVRemote</a>
+    <a href="igelnotes.html">IgelNotes</a>
+    <a href="igelserver.html">IgelServer</a>
+    <a href="igellauncher.html">IgelLauncher</a>
+    <h2>On this page</h2>
+    <a href="#overview">Overview</a>
+    <a href="#functional">Functional</a>
+    <a href="#technical">Technical</a>
+    <a href="#mcp">MCP server</a>
+    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+  </aside>
+
+  <main class="docs-content" id="main">
+    <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / IgelServer</p>
+    <h1>IgelServer</h1>
+    <p class="lede">A remote console for a headless Linux server over SSH: telemetry, systemd, Docker and qBittorrent, from a Mac or a Steam Deck.</p>
+
+    <div class="doc-meta">
+      <span class="pill pill--green">macOS + Linux builds</span>
+      <span class="pill">Rust · Tauri · SwiftUI</span>
+      <span class="pill pill--green">MCP available</span>
+      <span class="pill pill--amber">No release yet</span>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>IgelServer keeps server profiles and connects over SSH to the host you already administer. There is no agent on the server and no IgelTools relay. The Linux build is Rust with Tauri; the macOS app is SwiftUI. Both talk to the same kind of server profile.</p>
+
+    <h2 id="functional">Functional documentation</h2>
+    <h3>What you can do</h3>
+    <ul>
+      <li><strong>Profiles.</strong> Host, port, user, authentication method, SSH key path, timeouts and qBittorrent settings.</li>
+      <li><strong>Telemetry.</strong> CPU, memory, swap, disk partitions, uptime, load and live network throughput, polled every few seconds.</li>
+      <li><strong>systemd.</strong> List services, see failed units, start/stop/restart, and read journal lines without a terminal pager.</li>
+      <li><strong>Docker.</strong> List containers (running and stopped), start/stop/restart, and stream logs.</li>
+      <li><strong>qBittorrent.</strong> List torrents, add magnet links or torrent URLs, pause, resume and delete.</li>
+      <li><strong>App Hub.</strong> A launchpad for the web interfaces on the server, opened in the default browser.</li>
+    </ul>
+
+    <h3>First run</h3>
+    <ol>
+      <li>Open the app and edit the default profile in <strong>Configurazione</strong>: host, user and authentication.</li>
+      <li>Use an SSH key where possible. The key stays on the local machine; the server sees only the public key.</li>
+      <li>Unlock the vault to store passwords and sudo secrets.</li>
+      <li>Connect. The profile's host key is verified on first use and pinned.</li>
+    </ol>
+
+    <h3>Limitations</h3>
+    <ul>
+      <li>The interactive terminal is a command runner with a timeout, not a full PTY yet.</li>
+      <li>qBittorrent control assumes its WebUI is reachable at the profile's host and port; a separate tunnel is the user's choice.</li>
+      <li>The macOS and Linux builds are packaged by the project pipeline; no public release exists yet.</li>
+    </ul>
+
+    <h2 id="technical">Technical documentation</h2>
+    <h3>Architecture</h3>
+    <ul>
+      <li><strong>Linux:</strong> Rust workspace, Tauri v2 shell, a library crate with modules for SSH, telemetry, systemd, Docker, qBittorrent, config, vault, updater and Tauri commands.</li>
+      <li><strong>macOS:</strong> Swift 6 and SwiftUI, with its own profile and Keychain integration.</li>
+      <li><strong>Connection:</strong> one multiplexed SSH session per profile (libssh2 on Linux), commands serialised to avoid interleaving on a blocking session.</li>
+    </ul>
+
+    <h3>Storage</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Location</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Profiles</td><td><code>~/.config/ServerPulse/config.json</code></td><td>Directory 0700, file 0600, atomic replacement.</td></tr>
+        <tr><td>Vault</td><td><code>~/.config/ServerPulse/credentials_vault.enc</code></td><td>AES-256-GCM with Argon2id, bound to the machine; secrets are stripped from the config after unlock.</td></tr>
+        <tr><td>Known hosts</td><td>Platform SSH known-hosts store</td><td>Trust on first use, pinned afterwards; a mismatch aborts.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Security model</h3>
+    <ul>
+      <li>Passwords are never passed as process arguments. Sudo passwords go to <code>sudo -S</code> over the SSH channel's stdin.</li>
+      <li>Remote output is treated as untrusted; HTML is escaped. Unit and container identifiers are validated before entering a shell command.</li>
+      <li>The vault protects secrets at rest against other local users and casual disk inspection, not against code execution as the same user.</li>
+      <li>Prefer keys over passwords, and Tailscale/WireGuard over exposing SSH or the qBittorrent WebUI to the internet.</li>
+    </ul>
+
+    <h3>Build</h3>
+    <pre><code>cd ServerManager
+cargo build -p serverpulse --release        # the Linux app
+cargo test -p serverpulse
+cargo build -p igelserver-mcp --release     # the MCP server, no Tauri needed</code></pre>
+    <p>The MCP crate is a workspace member (<code>mcp/</code>) and depends only on serde, serde_json and ureq, so it builds without the GTK/WebKit dependencies required by Tauri.</p>
+
+    <h2 id="mcp">MCP server</h2>
+    <div class="doc-meta">
+      <span class="pill pill--green">Available</span>
+      <span class="pill">Binary: <code>igelserver-mcp</code></span>
+      <span class="pill">Config: app profiles</span>
+    </div>
+    <p>The server is a small companion binary. It reads the same profiles as the app and uses the system <code>ssh</code> client for connections; it does not need the Tauri runtime.</p>
+
+    <h3>Build and register</h3>
+    <pre><code>cd ServerManager
+cargo build -p igelserver-mcp --release
+install -Dm755 target/release/igelserver-mcp ~/.local/bin/igelserver-mcp</code></pre>
+    <pre><code>{
+  "mcpServers": {
+    "igelserver": {
+      "command": "/home/you/.local/bin/igelserver-mcp",
+      "env": {
+        "IGELSERVER_SUDO_PASSWORD": "…",
+        "IGELSERVER_QBIT_PASSWORD": "…"
+      }
+    }
+  }
+}</code></pre>
+
+    <h3>Configuration resolution</h3>
+    <table>
+      <thead><tr><th>Thing</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Profiles</td><td><code>IGELSERVER_CONFIG</code>, else <code>~/.config/ServerPulse/config.json</code>.</td></tr>
+        <tr><td>Active profile</td><td><code>active_profile_id</code>; every tool accepts an optional <code>profile</code> id.</td></tr>
+        <tr><td>SSH authentication</td><td>Key-based profiles: the profile's <code>key_path</code> (<code>~</code> expanded) with <code>ssh -i</code> and <code>BatchMode=yes</code>.</td></tr>
+        <tr><td>SSH agents</td><td>The system <code>ssh</code> client and the user's agent are honoured when no key path is required.</td></tr>
+        <tr><td>Sudo password</td><td><code>IGELSERVER_SUDO_PASSWORD</code>; otherwise <code>sudo -n</code> and the server reports the failure.</td></tr>
+        <tr><td>qBittorrent password</td><td>Profile <code>qbit_pass</code>, else <code>IGELSERVER_QBIT_PASSWORD</code>.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout--warn">
+      <span class="dot" aria-hidden="true"></span>
+      <p><strong>Vault not opened by MCP.</strong> The encrypted vault is machine-bound and unlocked by the app. The MCP server cannot decrypt it, so password-only SSH profiles need an agent/key, and sudo/qBittorrent secrets come from the environment (or plaintext profile fields if they exist).</p>
+    </div>
+
+    <h3>Tools</h3>
+    <table>
+      <thead><tr><th>Tool</th><th>Arguments</th><th>Kind</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>list_profiles</code></td><td>—</td><td>read</td><td>Profiles, active id, host/user/port; qBittorrent password only as a boolean.</td></tr>
+        <tr><td><code>ssh_check</code></td><td><code>profile?</code></td><td>read · network</td><td>Runs <code>hostname</code> over SSH and returns the exit code and output.</td></tr>
+        <tr><td><code>system_info</code></td><td><code>profile?</code></td><td>read · network</td><td>Host, kernel, uptime, memory, disk and CPU count.</td></tr>
+        <tr><td><code>list_units</code></td><td><code>profile?</code></td><td>read · network</td><td>systemd services with load/active/sub state and description.</td></tr>
+        <tr><td><code>unit_logs</code></td><td><code>unit</code>, <code>lines?</code>, <code>profile?</code></td><td>read · network</td><td><code>journalctl -u</code> tail, 1–2000 lines.</td></tr>
+        <tr><td><code>unit_action</code></td><td><code>unit</code>, <code>action</code>, <code>profile?</code></td><td>write · network</td><td><code>start</code>, <code>stop</code> or <code>restart</code> via sudo.</td></tr>
+        <tr><td><code>list_containers</code></td><td><code>profile?</code></td><td>read · network</td><td>Docker containers including stopped ones.</td></tr>
+        <tr><td><code>container_logs</code></td><td><code>container</code>, <code>lines?</code>, <code>profile?</code></td><td>read · network</td><td><code>docker logs --tail</code>, 1–2000 lines.</td></tr>
+        <tr><td><code>container_action</code></td><td><code>container</code>, <code>action</code>, <code>profile?</code></td><td>write · network</td><td><code>start</code>, <code>stop</code> or <code>restart</code>.</td></tr>
+        <tr><td><code>list_torrents</code></td><td><code>profile?</code></td><td>read · network</td><td>qBittorrent <code>/api/v2/torrents/info</code>.</td></tr>
+        <tr><td><code>add_torrent</code></td><td><code>url</code>, <code>profile?</code></td><td>write · network</td><td>Add a magnet link or torrent URL.</td></tr>
+        <tr><td><code>torrent_action</code></td><td><code>hash</code>, <code>action</code>, <code>profile?</code></td><td>write · network</td><td><code>pause</code>, <code>resume</code> or <code>delete</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Validation and safety</h3>
+    <ul>
+      <li>Unit names accept only letters, digits, <code>- _ . @ :</code>; container names only letters, digits, <code>- _ .</code>; torrent hashes are hex, 8–64 characters.</li>
+      <li>There is no arbitrary-command tool. The MCP surface is the same set of operations as the app's commands.</li>
+      <li>Action tools are not read-only, so a host can gate them behind approval.</li>
+      <li>Sudo passwords are sent on stdin to <code>sudo -S</code>, never as an argument.</li>
+      <li>SSH uses <code>BatchMode=yes</code>: it never blocks waiting for a password prompt.</li>
+    </ul>
+
+    <h3>Example</h3>
+    <pre><code>{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
+  "name": "unit_action",
+  "arguments": {"profile": "home", "unit": "plexmediaserver.service", "action": "restart"}
+}}</code></pre>
+
+    <div class="docs-next">
+      <span>Next</span>
+      <a href="igeltvremote.html">Igel TVRemote →</a>
+    </div>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© <span id="year">2026</span> IgelTools Docs</span>
+      <span><a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing site</a> · <a href="https://github.com/Chuucommie/igeltools-docs" target="_blank" rel="noreferrer">Docs source</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/js/docs.js" defer></script>
+</body>
+</html>

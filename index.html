@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IgelTools Docs — functional, technical and MCP reference</title>
+<meta name="description" content="Functional and technical documentation for the IgelTools suite and its Model Context Protocol servers: Igel TVRemote, IgelNotes, IgelServer and IgelLauncher.">
+<meta name="theme-color" content="#0c0e12">
+<link rel="icon" href="assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header docs-header" id="top">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html" aria-label="IgelTools Docs — home">
+      <img class="brand-mark" src="assets/icons/igeltools-256.png" alt="" width="256" height="256">
+      <span class="brand-word">Igel<span>Tools</span></span>
+      <span class="docs-badge">Docs</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html#apps">Apps</a>
+      <a href="mcp/index.html">MCP</a>
+      <a class="nav-ext" href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing <span aria-hidden="true">↗</span></a>
+      <a class="nav-ext" href="https://github.com/Chuucommie" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap docs-layout">
+  <aside class="docs-sidebar">
+    <h2>Start</h2>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <h2>Apps</h2>
+    <a href="apps/igeltvremote.html">Igel TVRemote</a>
+    <a href="apps/igelnotes.html">IgelNotes</a>
+    <a href="apps/igelserver.html">IgelServer</a>
+    <a href="apps/igellauncher.html">IgelLauncher</a>
+    <h2>Agents</h2>
+    <a href="mcp/index.html">MCP overview</a>
+    <a href="apps/igellauncher.html#mcp">Launcher MCP</a>
+    <a href="apps/igelserver.html#mcp">Server MCP</a>
+    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+  </aside>
+
+  <main class="docs-content" id="main">
+    <p class="eyebrow"><span class="num">Docs</span> / Overview</p>
+    <h1>Everything IgelTools, without the marketing.</h1>
+    <p class="lede">Functional and technical documentation for the suite, plus the contract for every Model Context Protocol server. The marketing site explains what the apps are for; this one explains how they work, how to run them and how an agent can drive them.</p>
+
+    <div class="doc-meta">
+      <span class="pill pill--green">MCP protocol 2025-06-18</span>
+      <span class="pill">Stdio transport</span>
+      <span class="pill">macOS · Linux</span>
+      <span class="pill pill--amber">Releases pending</span>
+    </div>
+
+    <div class="callout">
+      <span class="dot dot-live" aria-hidden="true"></span>
+      <p><strong>Two documentation sites, on purpose.</strong> The marketing site (<a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">chuucommie.github.io/igeltools-web</a>) is for introducing the apps. This site holds the details: behaviour, protocols, storage, security, limitations and MCP tools. If a claim belongs in an implementation, it belongs here.</p>
+    </div>
+
+    <h2 id="apps">The suite</h2>
+    <div class="doc-grid">
+      <div class="doc-card">
+        <span class="kicker">Living-room control</span>
+        <h3>Igel TVRemote</h3>
+        <p>A network remote for smart TVs: discovery, pairing, keys, text and wake-on-LAN. Apple platforms; the core is a Swift package with one adapter per TV protocol.</p>
+        <p><a href="apps/igeltvremote.html">Functional and technical docs →</a></p>
+      </div>
+      <div class="doc-card">
+        <span class="kicker">Writing and thinking</span>
+        <h3>IgelNotes</h3>
+        <p>A block editor on SwiftUI, SwiftData and CloudKit, with Pencil drawing, Siri intents and an assistant that can work on notes.</p>
+        <p><a href="apps/igelnotes.html">Functional and technical docs →</a></p>
+      </div>
+      <div class="doc-card">
+        <span class="kicker">Server control</span>
+        <h3>IgelServer</h3>
+        <p>A remote console for a headless Linux server over SSH: telemetry, systemd, Docker and qBittorrent, on macOS and on the Steam Deck.</p>
+        <p><a href="apps/igelserver.html">Functional and technical docs →</a></p>
+      </div>
+      <div class="doc-card">
+        <span class="kicker">Suite management</span>
+        <h3>IgelLauncher</h3>
+        <p>Installs, updates and opens the other three. Native Rust and egui, OS/CPU asset selection, SHA-256 verification and a stdio MCP server.</p>
+        <p><a href="apps/igellauncher.html">Functional and technical docs →</a></p>
+      </div>
+    </div>
+
+    <h2 id="status">Status</h2>
+    <table>
+      <thead>
+        <tr><th>App</th><th>Platforms</th><th>State</th><th>MCP</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Igel TVRemote</strong></td>
+          <td>macOS 13+, iOS 17+, watchOS 10+</td>
+          <td>In development; builds and tests in CI</td>
+          <td>Contract v1 documented; macOS server next</td>
+        </tr>
+        <tr>
+          <td><strong>IgelNotes</strong></td>
+          <td>iPhone, iPad, Mac (Apple targets)</td>
+          <td>In development</td>
+          <td>Contract v1 documented; macOS server next</td>
+        </tr>
+        <tr>
+          <td><strong>IgelServer</strong></td>
+          <td>macOS, Linux (Bazzite, Steam Deck)</td>
+          <td>In development; both builds compile</td>
+          <td><strong>Available:</strong> <code>igelserver-mcp</code></td>
+        </tr>
+        <tr>
+          <td><strong>IgelLauncher</strong></td>
+          <td>Linux (built), macOS (target)</td>
+          <td>In development; Linux release build runs</td>
+          <td><strong>Available:</strong> <code>igellauncher mcp</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Nothing has been published yet. The repositories are private, so release checks answer <em>no release published</em> until the first tags exist. The documentation describes the intended behaviour of the first release and the current implementation.</p>
+
+    <h2 id="agents">For agents</h2>
+    <p>Every app in the suite is required to ship a Model Context Protocol server. Two are implemented today; the Apple apps have a stable contract and their macOS servers are the next milestone. The <a href="mcp/index.html">MCP overview</a> covers transports, client registration, error conventions and security.</p>
+    <pre><code># IgelLauncher — catalog, installs, updates, settings
+igellauncher mcp
+
+# IgelServer — SSH telemetry, systemd, Docker, qBittorrent
+igelserver-mcp</code></pre>
+    <p>The servers speak JSON-RPC over stdio, write logs to stderr, and never expose secrets in tool results. Tools that change the machine are annotated as non-read-only so an MCP host can ask for approval.</p>
+
+    <h2 id="quick-links">Quick links</h2>
+    <ul>
+      <li><a href="architecture.html">Architecture and shared conventions</a> — storage, security, releases, MCP rules.</li>
+      <li><a href="mcp/index.html">MCP overview</a> — how to register the servers with an agent.</li>
+      <li><a href="apps/igellauncher.html">IgelLauncher</a> — install pipeline, checksums, launcher MCP tools.</li>
+      <li><a href="apps/igelserver.html">IgelServer</a> — SSH model, vault, server MCP tools.</li>
+      <li><a href="apps/igeltvremote.html">Igel TVRemote</a> — TV protocols, pairing, remote MCP contract.</li>
+      <li><a href="apps/igelnotes.html">IgelNotes</a> — block model, CloudKit, intents, notes MCP contract.</li>
+      <li><a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing site ↗</a></li>
+    </ul>
+
+    <div class="docs-next">
+      <span>Next</span>
+      <a href="architecture.html">Architecture →</a>
+    </div>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© <span id="year">2026</span> IgelTools Docs</span>
+      <span><a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing site</a> · <a href="https://github.com/Chuucommie/igeltools-docs" target="_blank" rel="noreferrer">Docs source</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/docs.js" defer></script>
+</body>
+</html>

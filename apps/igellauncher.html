@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IgelLauncher — IgelTools Docs</title>
+<meta name="description" content="How IgelLauncher works: catalog, asset selection, SHA-256 verification, install receipts, updates, data paths and the igellauncher MCP server.">
+<meta name="theme-color" content="#0c0e12">
+<link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/docs.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header docs-header" id="top">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html" aria-label="IgelTools Docs — home">
+      <img class="brand-mark" src="../assets/icons/igeltools-256.png" alt="" width="256" height="256">
+      <span class="brand-word">Igel<span>Tools</span></span>
+      <span class="docs-badge">Docs</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../index.html#apps">Apps</a>
+      <a href="../mcp/index.html">MCP</a>
+      <a class="nav-ext" href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing <span aria-hidden="true">↗</span></a>
+      <a class="nav-ext" href="https://github.com/Chuucommie" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap docs-layout">
+  <aside class="docs-sidebar">
+    <h2>Start</h2>
+    <a href="../index.html">Overview</a>
+    <a href="../architecture.html">Architecture</a>
+    <h2>Apps</h2>
+    <a href="igeltvremote.html">Igel TVRemote</a>
+    <a href="igelnotes.html">IgelNotes</a>
+    <a href="igelserver.html">IgelServer</a>
+    <a href="igellauncher.html">IgelLauncher</a>
+    <h2>On this page</h2>
+    <a href="#overview">Overview</a>
+    <a href="#functional">Functional</a>
+    <a href="#technical">Technical</a>
+    <a href="#mcp">MCP server</a>
+    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+  </aside>
+
+  <main class="docs-content" id="main">
+    <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / IgelLauncher</p>
+    <h1>IgelLauncher</h1>
+    <p class="lede">The suite manager: install, update and open the other apps, with the right build for the machine and a verified download. Native Rust and egui.</p>
+
+    <div class="doc-meta">
+      <span class="pill pill--green">Linux build runs</span>
+      <span class="pill pill--blue">macOS target</span>
+      <span class="pill">Rust · egui</span>
+      <span class="pill pill--green">MCP available</span>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>IgelLauncher reads a small embedded catalog of the suite, detects what is already installed, checks GitHub releases, and installs the asset that matches the current operating system and CPU. Its own window and its MCP server use the same catalog, release checks and install pipeline.</p>
+
+    <h2 id="functional">Functional documentation</h2>
+    <h3>What you can do</h3>
+    <ul>
+      <li>Browse the suite in a card grid or a sortable table, search it, and filter to installed apps.</li>
+      <li>See whether an app is installed, which version, and whether the copy was installed by the launcher or found elsewhere.</li>
+      <li>Install an app, update one, or update all, with progress and cancellation.</li>
+      <li>Open an installed app and remove a launcher-managed copy. External installs are never removed.</li>
+      <li>Check the launcher's own releases, download and verify an update.</li>
+      <li>Read the rotating log inside the window, or copy it.</li>
+      <li>Use the interface in English, Italian or German; <em>Automatic</em> follows the system locale.</li>
+    </ul>
+
+    <h3>First run</h3>
+    <ol>
+      <li>Start <code>igellauncher</code>. It creates its data folders and a default <code>settings.json</code>.</li>
+      <li>If the repositories are private, GitHub answers <em>404</em>. Set a token in <strong>Settings → GitHub token</strong>, or override the repository for an app.</li>
+      <li>Press <strong>Check for updates</strong>. Apps without a published release stay at <em>No release published yet</em>.</li>
+      <li>Install an app. The launcher downloads the selected asset, verifies its SHA-256 and records a receipt.</li>
+    </ol>
+
+    <h3>Platform notes</h3>
+    <ul>
+      <li><strong>Linux.</strong> The release build links X11 and runs through XWayland on a Wayland session. AppImages and tar.gz archives are installed; deb/rpm and ZIP assets are offered as downloads for the system package manager.</li>
+      <li><strong>macOS.</strong> DMG assets are mounted, the <code>.app</code> is copied to <code>~/Applications</code>, and the image is detached. The macOS build is the next target; the Linux build is the one that runs today.</li>
+      <li><strong>Windows.</strong> The suite does not target Windows yet. MSI/ZIP assets are listed and downloaded but not installed.</li>
+    </ul>
+
+    <h2 id="technical">Technical documentation</h2>
+    <h3>Data and configuration</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Linux path</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Settings</td><td><code>~/.config/igellauncher/settings.json</code></td><td>Language, pre-releases, checksum policy, token, install dir, repository overrides.</td></tr>
+        <tr><td>Data</td><td><code>~/.local/share/igellauncher/</code></td><td>Receipts, logs, temporary downloads, updates, tar.gz installs.</td></tr>
+        <tr><td>Receipts</td><td><code>…/igellauncher/installed.json</code></td><td>Version, path, install kind, managed flag, timestamp.</td></tr>
+        <tr><td>Log</td><td><code>…/igellauncher/logs/igellauncher.log</code></td><td>Previous three runs kept as <code>.1</code>, <code>.2</code>, <code>.3</code>.</td></tr>
+        <tr><td>AppImage</td><td><code>~/Applications/&lt;id&gt;.AppImage</code></td><td>Overridable in Settings; desktop entry in <code>~/.local/share/applications</code>.</td></tr>
+        <tr><td>tar.gz</td><td><code>…/igellauncher/apps/&lt;id&gt;/&lt;version&gt;/</code></td><td>The receipt stores the executable path.</td></tr>
+        <tr><td>Manual download</td><td><code>~/Downloads/</code></td><td>Unique file names, checksum verified when published.</td></tr>
+      </tbody>
+    </table>
+    <p>On macOS the equivalent folders come from the platform's Application Support directories; the exact paths are shown in <strong>Settings → Data folder</strong> and by the <code>launcher_info</code> MCP tool.</p>
+
+    <h3>Asset selection</h3>
+    <p>Names are matched by extension and architecture token, then ranked per platform:</p>
+    <table>
+      <thead><tr><th>Platform</th><th>Preference</th><th>Architecture tokens</th></tr></thead>
+      <tbody>
+        <tr><td>Linux</td><td>AppImage → tar.gz → deb → rpm</td><td><code>x86_64</code>, <code>x64</code>, <code>amd64</code>; <code>aarch64</code>, <code>arm64</code>; <code>unity</code>/universal accepted</td></tr>
+        <tr><td>macOS</td><td>dmg → tar.gz → pkg → zip</td><td>Same, plus <code>universal</code> for both CPUs</td></tr>
+        <tr><td>Windows</td><td>msi → exe → zip</td><td>Same; download only</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Checksums</h3>
+    <p>The expected SHA-256 comes from the GitHub asset digest when present, otherwise from a release asset named like <code>SHA256SUMS.txt</code>, <code>*.sha256</code>, <code>checksums.txt</code> or <code>sha256.txt</code>. The checksum file is parsed, the line for the chosen asset is used, and a mismatch deletes the download.</p>
+    <div class="callout callout--warn">
+      <span class="dot" aria-hidden="true"></span>
+      <p><strong>Default policy.</strong> No published checksum means no install, in both the window and MCP. The rule can be turned off in Settings for development builds.</p>
+    </div>
+
+    <h3>Self-update</h3>
+    <p>The launcher checks its own repository and downloads the matching asset to <code>…/data/updates/</code>, verifying the checksum. It does not replace the running binary: the window says where the file is and asks you to close and reopen the launcher, or to install the file yourself. In-place replacement is on the roadmap.</p>
+
+    <h3>Local release feed</h3>
+    <p>For testing before a repository is published, set <code>IGEL_LAUNCHER_MANIFEST</code> to a JSON file and optionally <code>IGEL_LAUNCHER_DOWNLOAD_BASE</code> to rewrite asset URLs. A manifest entry looks like this:</p>
+    <pre><code>{
+  "apps": {
+    "igelserver": {
+      "version": "1.2.3",
+      "notes": "Local test build",
+      "assets": [
+        {
+          "name": "igelserver-1.2.3-x86_64.AppImage",
+          "url": "file:///absolute/path/igelserver-1.2.3-x86_64.AppImage",
+          "size": 12345678,
+          "sha256": "0123…"
+        }
+      ]
+    }
+  }
+}</code></pre>
+
+    <h3>Architecture</h3>
+    <p>Rust 2021 with eframe/egui. Modules: catalog, release source (GitHub or manifest), platform asset selection, downloader, install/uninstall, receipts and logging, settings, i18n (EN/IT/DE), the egui app and the MCP server. The GUI and MCP share the same primitives; they do not share a process.</p>
+    <p>Build and test:</p>
+    <pre><code>cargo run --release          # the window
+cargo test                   # 30 tests
+./install.sh                 # binary, icon and desktop entry for the current user</code></pre>
+
+    <h2 id="mcp">MCP server</h2>
+    <div class="doc-meta">
+      <span class="pill pill--green">Available</span>
+      <span class="pill">Binary: <code>igellauncher</code></span>
+      <span class="pill">Args: <code>mcp</code></span>
+    </div>
+    <p>The launcher binary is also the server. It does not open a window in MCP mode; it reads JSON-RPC from stdin, writes responses to stdout and logs to stderr plus the launcher log file.</p>
+    <pre><code>igellauncher mcp
+# or
+igellauncher --mcp</code></pre>
+
+    <h3>Register it with an MCP client</h3>
+    <pre><code>{
+  "mcpServers": {
+    "igellauncher": {
+      "command": "/home/you/.local/bin/igellauncher",
+      "args": ["mcp"]
+    }
+  }
+}</code></pre>
+
+    <h3>Tools</h3>
+    <table>
+      <thead><tr><th>Tool</th><th>Arguments</th><th>Kind</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>launcher_info</code></td><td>—</td><td>read</td><td>Version, platform, architecture, data/config/log paths, protocol version.</td></tr>
+        <tr><td><code>list_apps</code></td><td>—</td><td>read</td><td>Catalog with platforms, repository, availability and installed state.</td></tr>
+        <tr><td><code>list_installed</code></td><td>—</td><td>read</td><td>Installed apps, including external copies, with version and path.</td></tr>
+        <tr><td><code>check_updates</code></td><td><code>app_id?</code></td><td>read · network</td><td>Latest release per app and comparison with the installed version; also checks the launcher.</td></tr>
+        <tr><td><code>list_releases</code></td><td><code>app_id</code></td><td>read · network</td><td>Published releases, notes, assets and the asset selected for this OS/CPU.</td></tr>
+        <tr><td><code>install_app</code></td><td><code>app_id</code>, <code>version?</code></td><td>write · network</td><td>Download, verify and install. Refuses without checksum unless the setting allows it.</td></tr>
+        <tr><td><code>update_app</code></td><td><code>app_id</code>, <code>version?</code></td><td>write · network</td><td>Install a newer release for an app installed by the launcher; reports <em>already up to date</em> otherwise.</td></tr>
+        <tr><td><code>download_app</code></td><td><code>app_id</code>, <code>asset?</code></td><td>write · network</td><td>Download to <code>~/Downloads</code> without installing.</td></tr>
+        <tr><td><code>open_app</code></td><td><code>app_id</code></td><td>write</td><td>Open an installed app.</td></tr>
+        <tr><td><code>uninstall_app</code></td><td><code>app_id</code></td><td>write</td><td>Remove a launcher-managed copy; external installs are refused.</td></tr>
+        <tr><td><code>get_settings</code></td><td>—</td><td>read</td><td>Settings, with <code>github_token_set</code> instead of the token.</td></tr>
+        <tr><td><code>set_settings</code></td><td>any field</td><td>write</td><td>Language, pre-releases, check-on-start, checksum policy, install dir, token, repository overrides.</td></tr>
+        <tr><td><code>get_logs</code></td><td><code>limit?</code></td><td>read</td><td>Tail of the rotating log (1–500 lines).</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Example</h3>
+    <pre><code>{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{
+  "name": "check_updates",
+  "arguments": {"app_id": "igelserver"}
+}}</code></pre>
+    <p>The response is a single text content block containing pretty-printed JSON. Failures set <code>isError: true</code> and keep the protocol response well-formed.</p>
+
+    <h3>Security rules</h3>
+    <ul>
+      <li>Local stdio only; no listener. An agent must be able to start the binary as your user.</li>
+      <li>The GitHub token is write-only through MCP; results report only whether it is set.</li>
+      <li>Installs and removals are annotated as non-read-only, so MCP hosts can require approval.</li>
+      <li>The server never bypasses the checksum policy or removes an external install.</li>
+      <li>Download URLs are used as published by the release; the checksum is what decides whether a file is installed.</li>
+    </ul>
+
+    <div class="docs-next">
+      <span>Next</span>
+      <a href="igelserver.html">IgelServer →</a>
+    </div>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© <span id="year">2026</span> IgelTools Docs</span>
+      <span><a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing site</a> · <a href="https://github.com/Chuucommie/igeltools-docs" target="_blank" rel="noreferrer">Docs source</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/js/docs.js" defer></script>
+</body>
+</html>

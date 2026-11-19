@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IgelNotes — IgelTools Docs</title>
+<meta name="description" content="IgelNotes documentation: block model, SwiftData and CloudKit, App Intents, AI providers, export and the MCP contract.">
+<meta name="theme-color" content="#0c0e12">
+<link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/docs.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header docs-header" id="top">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html" aria-label="IgelTools Docs — home">
+      <img class="brand-mark" src="../assets/icons/igeltools-256.png" alt="" width="256" height="256">
+      <span class="brand-word">Igel<span>Tools</span></span>
+      <span class="docs-badge">Docs</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../index.html#apps">Apps</a>
+      <a href="../mcp/index.html">MCP</a>
+      <a class="nav-ext" href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing <span aria-hidden="true">↗</span></a>
+      <a class="nav-ext" href="https://github.com/Chuucommie" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap docs-layout">
+  <aside class="docs-sidebar">
+    <h2>Start</h2>
+    <a href="../index.html">Overview</a>
+    <a href="../architecture.html">Architecture</a>
+    <h2>Apps</h2>
+    <a href="igeltvremote.html">Igel TVRemote</a>
+    <a href="igelnotes.html">IgelNotes</a>
+    <a href="igelserver.html">IgelServer</a>
+    <a href="igellauncher.html">IgelLauncher</a>
+    <h2>On this page</h2>
+    <a href="#overview">Overview</a>
+    <a href="#functional">Functional</a>
+    <a href="#technical">Technical</a>
+    <a href="#mcp">MCP contract</a>
+    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+  </aside>
+
+  <main class="docs-content" id="main">
+    <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / IgelNotes</p>
+    <h1>IgelNotes</h1>
+    <p class="lede">A block editor in the Notion mould for the Apple stack: pages made of blocks, CloudKit sync, Pencil drawing, Siri intents and an assistant that can work on the page with you.</p>
+
+    <div class="doc-meta">
+      <span class="pill pill--blue">iPhone · iPad · Mac</span>
+      <span class="pill">SwiftUI · SwiftData · CloudKit</span>
+      <span class="pill pill--amber">MCP contract v1</span>
+      <span class="pill pill--amber">No release yet</span>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>IgelNotes stores a note as an ordered list of typed blocks. Notes belong to workspaces, sync through the user's own iCloud container, and can be shared with other people through CloudKit sharing. The same page is the unit the assistant, the Siri intents and the future MCP server operate on.</p>
+
+    <h2 id="functional">Functional documentation</h2>
+    <h3>What you can do</h3>
+    <ul>
+      <li>Write in blocks: headings, text, todos, lists, quotes, code, tables, dividers and drawings.</li>
+      <li>Organise notes in workspaces, tag them, mark favourites, and recover deleted notes from the trash.</li>
+      <li>Use a Notion-style page: emoji, cover, nested notes and a short block toolbar.</li>
+      <li>Sketch with Apple Pencil on iPad; drawings are blocks in the page, with Scribble handwriting support.</li>
+      <li>Ask Siri or Shortcuts to create a note, append text, search or open one; a shopping-list intent builds todo blocks.</li>
+      <li>Work with the assistant using OpenAI, Anthropic, Ollama or Apple Intelligence, with keys kept in the Keychain.</li>
+      <li>Export a note or send it to an external agent (Hermes) where configured.</li>
+    </ul>
+
+    <h3>Platforms</h3>
+    <table>
+      <thead><tr><th>Target</th><th>Minimum</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>iPhone</td><td>iOS 18</td><td>Main writing target.</td></tr>
+        <tr><td>iPad</td><td>iPadOS 18</td><td>Pencil drawing and Scribble.</td></tr>
+        <tr><td>Mac</td><td>macOS 15</td><td>Same SwiftUI codebase.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Limitations</h3>
+    <ul>
+      <li>No Windows, Android or Linux build is planned for the current architecture.</li>
+      <li>CloudKit sharing and some assistant features depend on the user's iCloud account and provider keys.</li>
+      <li>Nothing has been released; the documentation follows the implementation plan and the current source.</li>
+    </ul>
+
+    <h2 id="technical">Technical documentation</h2>
+    <h3>Data model (SwiftData)</h3>
+    <table>
+      <thead><tr><th>Model</th><th>Key fields</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>Note</code></td><td><code>id</code>, <code>title</code>, timestamps, <code>blocks</code>, <code>tags</code>, <code>workspace</code>, <code>createdVia</code>, <code>isFavorite</code>, trash fields, <code>sharedRecordID</code></td><td>Blocks cascade-delete with the note; parent/child notes allow nesting.</td></tr>
+        <tr><td><code>NoteBlock</code></td><td><code>type</code>, <code>content</code>, <code>sortOrder</code>, table data, drawing data</td><td>One row per block; the editor renders by type.</td></tr>
+        <tr><td><code>BlockType</code></td><td>heading, text, todo, list, quote, code, table, image, drawing…</td><td>The block catalogue shared by the editor and intents.</td></tr>
+        <tr><td><code>Workspace</code></td><td>name and note relationship</td><td>Groups pages.</td></tr>
+        <tr><td><code>AIChat</code></td><td>messages and provider context</td><td>Assistant conversations attached to the workspace.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Sync and storage</h3>
+    <ul>
+      <li><strong>CloudKit:</strong> SwiftData models map to a private CloudKit database in the user's container; no IgelTools server is involved.</li>
+      <li><strong>Sharing:</strong> notes keep a <code>CKRecord</code> identifier for ShareKit collaboration and a <code>private</code>/<code>shared</code> status.</li>
+      <li><strong>Secrets:</strong> AI provider keys and service tokens live in the Keychain through <code>KeychainHelper</code>.</li>
+      <li><strong>Optional services:</strong> an Appwrite client and an external agent (Hermes) integration exist for specific workflows; both are configured by the user and are not required.</li>
+    </ul>
+
+    <h3>App Intents</h3>
+    <table>
+      <thead><tr><th>Intent</th><th>Parameters</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>CreateNoteIntent</code></td><td>title, content, template, tags</td><td>Creates a note and its initial blocks.</td></tr>
+        <tr><td><code>AppendToNoteIntent</code></td><td>note, text</td><td>Appends a block to an existing note.</td></tr>
+        <tr><td><code>SearchNotesIntent</code></td><td>query</td><td>Finds notes by title, tags or content.</td></tr>
+        <tr><td><code>OpenNoteIntent</code></td><td>note</td><td>Opens a note in the app.</td></tr>
+        <tr><td><code>CreateShoppingListIntent</code></td><td>items</td><td>Builds a todo list from dictated or typed text.</td></tr>
+        <tr><td><code>ExportToHermesIntent</code></td><td>note, destination</td><td>Sends a note payload to the configured agent.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Assistant providers</h3>
+    <p>OpenAI, Anthropic, Ollama and Apple Intelligence are selectable. Providers that need a key or base URL read them from the provider configuration; keys are stored in the Keychain. The assistant can propose block changes, which the user applies in the editor.</p>
+
+    <h3>Build</h3>
+    <pre><code># The source tree is consumed by the Xcode project.
+# Open the project, select the Apple targets, and build with Xcode 27 / Swift 6.
+# CloudKit requires a signed build with the iCloud capability.</code></pre>
+
+    <h2 id="mcp">MCP contract</h2>
+    <div class="doc-meta">
+      <span class="pill pill--amber">Contract v1</span>
+      <span class="pill pill--amber">macOS server next</span>
+      <span class="pill">Binary: <code>igelnotes-mcp</code></span>
+    </div>
+    <div class="callout callout--warn">
+      <span class="dot" aria-hidden="true"></span>
+      <p><strong>Status.</strong> The tools below are the frozen v1 contract. The server will be a macOS executable that opens the same SwiftData store and reuses the App Intents, so an agent can read and write notes without a second database. It is the next milestone after the TVRemote server.</p>
+    </div>
+
+    <h3>Design</h3>
+    <ul>
+      <li>Runs on the Mac that owns the notes; it does not talk to CloudKit directly or bypass the app's store.</li>
+      <li>Read tools return note metadata and block content; write tools create or append blocks and mark them as <code>createdVia: "mcp"</code>.</li>
+      <li>No assistant key is exposed. Tools that need the assistant reuse the app's configured provider.</li>
+      <li>stdio only; no listener.</li>
+    </ul>
+
+    <h3>Tools</h3>
+    <table>
+      <thead><tr><th>Tool</th><th>Arguments</th><th>Kind</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>list_notes</code></td><td><code>query?</code>, <code>workspace?</code>, <code>limit?</code>, <code>include_trash?</code></td><td>read</td><td>Notes with id, title, tags, workspace and timestamps.</td></tr>
+        <tr><td><code>get_note</code></td><td><code>note_id</code></td><td>read</td><td>Note metadata plus blocks in order, with block ids and types.</td></tr>
+        <tr><td><code>search_notes</code></td><td><code>query</code>, <code>limit?</code></td><td>read</td><td>Full-text search over titles, tags and block content.</td></tr>
+        <tr><td><code>create_note</code></td><td><code>title</code>, <code>content?</code>, <code>tags?</code>, <code>workspace?</code>, <code>template?</code></td><td>write</td><td>Creates a note with initial blocks, like the Siri intent.</td></tr>
+        <tr><td><code>append_to_note</code></td><td><code>note_id</code>, <code>text</code>, <code>block_type?</code></td><td>write</td><td>Appends a block to an existing note.</td></tr>
+        <tr><td><code>update_block</code></td><td><code>note_id</code>, <code>block_id</code>, <code>content</code></td><td>write</td><td>Replaces the text of a block.</td></tr>
+        <tr><td><code>open_note</code></td><td><code>note_id</code></td><td>write</td><td>Opens the note in the app.</td></tr>
+        <tr><td><code>export_note</code></td><td><code>note_id</code>, <code>format</code></td><td>read</td><td>Returns the note as markdown or a structured payload.</td></tr>
+        <tr><td><code>list_workspaces</code></td><td>—</td><td>read</td><td>Workspaces available in the store.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Example</h3>
+    <pre><code>{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
+  "name": "append_to_note",
+  "arguments": {
+    "note_id": "5F0C8C1E-…",
+    "text": "Call the plumber on Monday.",
+    "block_type": "todo"
+  }
+}}</code></pre>
+
+    <h3>Security rules</h3>
+    <ul>
+      <li>Local stdio; the server runs as the user who owns the store.</li>
+      <li>Write tools are annotated as non-read-only; deletes are not part of v1.</li>
+      <li>Provider keys and CloudKit account details are never returned.</li>
+      <li>Exports return content only; they do not write files outside the app's data folder unless the tool says so.</li>
+    </ul>
+
+    <div class="docs-next">
+      <span>Next</span>
+      <a href="igellauncher.html">IgelLauncher →</a>
+    </div>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© <span id="year">2026</span> IgelTools Docs</span>
+      <span><a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing site</a> · <a href="https://github.com/Chuucommie/igeltools-docs" target="_blank" rel="noreferrer">Docs source</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/js/docs.js" defer></script>
+</body>
+</html>
