@@ -156,8 +156,8 @@ claude mcp add --transport http igelnotes http://127.0.0.1:8765/mcp --header "Au
         <tr><td>Bindings</td><td>No listener for stdio. IgelNotes binds <code>127.0.0.1:8765</code>; IgelServer's macOS HTTP helper binds <code>127.0.0.1:8787</code>; the iOS server listens on the local network through Bonjour on port 8788 while the app is in the foreground.</td></tr>
         <tr><td>Auth</td><td>Bearer token for HTTP. IgelNotes stores it in the Keychain; the IgelServer macOS helper reads or generates <code>IGELSERVER_HTTP_TOKEN</code>; the iOS server generates a token shown in Settings.</td></tr>
         <tr><td>Tool results</td><td>Text block with JSON. Tool failures use <code>isError: true</code>; protocol failures use JSON-RPC errors.</td></tr>
-        <tr><td>Scopes</td><td>IgelServer and IgelNotes filter tools by read/write/destructive profile. The launcher and TV remote gate per-tool hints and flags.</td></tr>
-        <tr><td>Resources / prompts</td><td>IgelNotes and IgelServer expose both. Igel TVRemote exposes resources. IgelLauncher is tools-only.</td></tr>
+        <tr><td>Scopes</td><td>IgelServer's macOS helper and IgelNotes filter tools by read/write/destructive profile. The iOS server exposes a fixed 10-tool set. The launcher and TV remote gate per-tool hints and flags.</td></tr>
+        <tr><td>Resources / prompts</td><td>IgelNotes and IgelServer's macOS helper expose both. IgelServer iOS is tools-only. Igel TVRemote exposes tools and read-only resources. IgelLauncher is tools-only.</td></tr>
         <tr><td>Annotations</td><td><code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>; network tools may set <code>openWorldHint</code>.</td></tr>
         <tr><td>Secrets</td><td>Never returned. Tokens and passwords are reported as boolean <code>*_set</code> fields.</td></tr>
         <tr><td>Logging</td><td>stderr and/or the app log file. stdout is always the protocol channel.</td></tr>
