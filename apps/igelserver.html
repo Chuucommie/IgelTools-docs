@@ -225,7 +225,7 @@
       <span class="pill">macOS: <code>igelserver-mcp</code>, 25 tools</span>
       <span class="pill">iOS: foreground HTTP, 10 tools</span>
     </div>
-    <p>The helper in <code>mcp/</code> is a native Swift package. It depends only on Foundation and <code>/usr/bin/ssh</code>, reads the same profiles as the macOS app, and ships inside the app bundle at <code>Contents/Helpers/igelserver-mcp</code>. The packaging script signs it with the app so the shared Keychain and SSH identity keep working. The iOS app uses its own foreground-only HTTP server instead of this helper.</p>
+    <p>The helper in <code>mcp/</code> is a native Swift package. It uses Foundation and <code>/usr/bin/ssh</code>, with Apple's SwiftNIO packages for the HTTP transport, reads the same profiles as the macOS app, and ships inside the app bundle at <code>Contents/Helpers/igelserver-mcp</code>. The packaging script signs it with the app so the shared Keychain and SSH identity keep working. The iOS app uses its own foreground-only HTTP server instead of this helper.</p>
 
     <h3>Transports</h3>
     <table>
