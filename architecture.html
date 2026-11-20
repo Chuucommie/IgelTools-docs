@@ -42,8 +42,10 @@
     <h2>Agents</h2>
     <a href="mcp/index.html">MCP overview</a>
     <a href="apps/igellauncher.html#mcp">Launcher MCP</a>
-    <a href="apps/igelserver.html#mcp">Server status</a>
-    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+    <a href="apps/igelserver.html#mcp">Server MCP</a>
+    <a href="apps/igeltvremote.html#mcp">TVRemote MCP</a>
+    <a href="apps/igelnotes.html#mcp">Notes MCP</a>
+    <span class="side-note">Protocol 2025-06-18<br>stdio + loopback HTTP<br>All servers are local.</span>
   </aside>
 
   <main class="docs-content" id="main">
@@ -54,10 +56,10 @@
     <h2 id="principles">Principles</h2>
     <ul>
       <li><strong>Local first.</strong> TVs are discovered on the LAN; the server is reached over SSH; notes live in a local SwiftData store, optionally synced to an Appwrite instance the user owns. There is no IgelTools relay and no IgelTools account.</li>
-      <li><strong>Native.</strong> SwiftUI, SwiftData and AppKit or UIKit on Apple platforms; Rust with egui in IgelLauncher. No web view pretending to be an app.</li>
+      <li><strong>Native.</strong> SwiftUI, SwiftData and AppKit or UIKit on Apple platforms. IgelLauncher is SwiftUI too. No Electron and no web view pretending to be an app.</li>
       <li><strong>One job per app.</strong> The suite grows by addition, not by turning one app into four.</li>
       <li><strong>Published only when built.</strong> A platform is listed as available after it compiles. The same rule applies to MCP: a server is documented as available only when the binary exists.</li>
-      <li><strong>Agents are users too.</strong> Where an MCP server exists, it exposes the same capabilities as the window, with the same limits. The launcher has one; the Apple apps do not yet.</li>
+      <li><strong>Agents are users too.</strong> Every app now exposes an MCP server, with the same limits as the window. Three use stdio; IgelNotes uses loopback HTTP inside the app.</li>
     </ul>
 
     <h2 id="storage">Storage and credentials</h2>
@@ -72,7 +74,7 @@
         <tr>
           <td>IgelNotes</td>
           <td>Notes and blocks in a local SwiftData store. Optional Appwrite sync, configured by the user; CloudKit is not active.</td>
-          <td>AI provider keys and the Appwrite API key in the Keychain; no IgelTools account.</td>
+          <td>AI provider keys, the Appwrite API key and the MCP bearer token in the Keychain; no IgelTools account.</td>
         </tr>
         <tr>
           <td>IgelServer</td>
@@ -88,8 +90,8 @@
     </table>
 
     <h2 id="releases">Releases and updates</h2>
-    <p>Apps publish through the shared public repository <code>Chuucommie/IgelTools-Releases</code>. Tags are namespaced per app (<code>igelserver-v2.2.0</code>, and the equivalent for the others), so one repository can carry several apps without their assets colliding.</p>
-    <p>Artifact names carry the OS and CPU (<code>macos-aarch64</code>, <code>macos-x86_64</code>), and a release publishes a checksum file or per-asset SHA-256. IgelServer publishes a DMG only; a DMG without an architecture token is rejected. Its client reads <code>channels/igelserver.json</code> first (version, URL, SHA-256, size) and falls back to the releases API.</p>
+    <p>Apps publish through the shared public repository <code>Chuucommie/IgelTools-Releases</code>. Tags are namespaced per app (<code>igeltvremote-vX.Y.Z</code>, <code>igelnotes-vX.Y.Z</code>, <code>igelserver-vX.Y.Z</code>, <code>igellauncher-vX.Y.Z</code>), so one repository can carry several apps without their assets colliding.</p>
+    <p>Artifact names carry the OS and CPU (<code>macos-aarch64</code>, <code>macos-x86_64</code>), and a release publishes a checksum file or per-asset SHA-256. IgelServer and IgelNotes publish DMGs with stable <code>channels/&lt;app&gt;.json</code> manifests; Igel TVRemote has no published release yet; IgelLauncher is at 0.1.0 without a signed installer.</p>
     <p>IgelLauncher is the reference client for the generic contract:</p>
     <ol>
       <li>Fetch releases for the app's repository (latest stable, or include pre-releases when enabled).</li>
@@ -100,23 +102,25 @@
     </ol>
     <div class="callout callout--warn">
       <span class="dot" aria-hidden="true"></span>
-      <p><strong>No checksum, no install.</strong> By default the launcher refuses to install an asset without a published SHA-256, in both the window and the MCP install/update tools. The setting can be turned off deliberately; download-only actions verify when a checksum exists but do not enforce the policy.</p>
+      <p><strong>No checksum, no install.</strong> By default the launcher refuses an asset without a published SHA-256, in the window and in the MCP install/update/download tools. The launcher's own self-update is the exception: it verifies when a checksum exists and does not enforce the policy.</p>
     </div>
 
     <h2 id="mcp-rules">MCP conventions</h2>
-    <p>These rules are normative for every IgelTools MCP server that exists. Today only IgelLauncher implements a server; the other apps document App Intents or no agent surface at all.</p>
+    <p>These rules describe the four servers that exist today. They are not a contract for future apps.</p>
     <table>
       <thead><tr><th>Rule</th><th>Value</th></tr></thead>
       <tbody>
-        <tr><td>Wire protocol</td><td>JSON-RPC 2.0 over newline-delimited JSON on stdio.</td></tr>
-        <tr><td>MCP protocol version</td><td><code>2025-06-18</code>; servers answer with the version they implement.</td></tr>
-        <tr><td>Handshake</td><td><code>initialize</code> → <code>notifications/initialized</code>. No other notification is required.</td></tr>
-        <tr><td>Discovery</td><td><code>tools/list</code> returns JSON Schema for every tool; <code>resources/list</code> and <code>prompts/list</code> may be empty.</td></tr>
-        <tr><td>Tool results</td><td>One <code>text</code> content block containing pretty-printed JSON. Tool failures use <code>isError: true</code>; protocol failures use JSON-RPC errors.</td></tr>
-        <tr><td>Logging</td><td>stderr or the app's log file. Never stdout.</td></tr>
-        <tr><td>Annotations</td><td><code>readOnlyHint</code> for inspection tools, <code>openWorldHint</code> for network operations.</td></tr>
+        <tr><td>Wire protocol</td><td>JSON-RPC 2.0, newline-delimited on stdio or JSON over HTTP.</td></tr>
+        <tr><td>MCP protocol version</td><td><code>2025-06-18</code>; IgelServer HTTP also accepts newer protocol headers, IgelNotes accepts older client versions.</td></tr>
+        <tr><td>Transports</td><td>stdin/stdout for IgelLauncher, IgelServer and Igel TVRemote; loopback HTTP for IgelNotes and optional Streamable HTTP for IgelServer.</td></tr>
+        <tr><td>Binding</td><td>stdio has no listener. HTTP servers bind <code>127.0.0.1</code> only: IgelNotes on 8765, IgelServer on 8787.</td></tr>
+        <tr><td>Auth</td><td>stdio relies on the local process. HTTP requires a bearer token; IgelNotes stores it in the Keychain, IgelServer takes <code>IGELSERVER_HTTP_TOKEN</code> or generates one.</td></tr>
+        <tr><td>Discovery</td><td><code>tools/list</code> returns JSON Schema; resources and prompts are optional. All four expose tools, IgelNotes and IgelServer also expose resources and prompts.</td></tr>
+        <tr><td>Scopes</td><td>IgelServer filters tools by <code>read</code>/<code>write</code>/<code>destructive</code>; IgelNotes filters by the same profile names. The launcher uses per-tool write/destructive hints.</td></tr>
+        <tr><td>Tool results</td><td>One text content block with JSON. Tool failures use <code>isError: true</code>; protocol failures use JSON-RPC errors.</td></tr>
+        <tr><td>Annotations</td><td><code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>; network tools set <code>openWorldHint</code> where the host supports it.</td></tr>
         <tr><td>Secrets</td><td>Never returned. Tokens and passwords are reported as boolean <code>*_set</code> fields.</td></tr>
-        <tr><td>Process model</td><td>Local child process, one per client session. No TCP listener yet.</td></tr>
+        <tr><td>Process model</td><td>One local child process per client session, except IgelNotes, whose server lives inside the app.</td></tr>
       </tbody>
     </table>
 
@@ -133,11 +137,11 @@
 
     <h2 id="security">Security model</h2>
     <ul>
-      <li><strong>Local surface.</strong> MCP servers run as the user and only over stdio. An agent must already be able to start a local process to talk to them.</li>
+      <li><strong>Local surface.</strong> stdio servers run as the user; HTTP servers bind loopback and require a bearer token. An agent must already be able to start a local process or reach the loopback port.</li>
       <li><strong>Same powers as the window.</strong> If a tool can restart a service, the window can too. Tools that write are annotated so the host can require approval.</li>
       <li><strong>Input validation.</strong> Identifiers are allowlisted (unit names, container names, torrent hashes, app ids); there is no arbitrary shell tool.</li>
       <li><strong>Secrets stay in the app.</strong> The server reads them where the app already keeps them; tool results never include them.</li>
-      <li><strong>Verification.</strong> Launcher installs require a checksum by default, in both the GUI and MCP.</li>
+      <li><strong>Verification.</strong> Launcher installs and downloads require a checksum by default, in both the GUI and MCP; only the launcher's own self-update is verify-when-available.</li>
     </ul>
 
     <h2 id="docs-policy">What lives where</h2>

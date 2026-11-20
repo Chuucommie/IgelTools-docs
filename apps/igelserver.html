@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IgelServer — IgelTools Docs</title>
-<meta name="description" content="IgelServer documentation: native macOS and iOS SSH clients, profiles, LAN/Tailscale routing, telemetry, systemd, Docker, qBittorrent, SMB, credential vault and release pipeline.">
+<meta name="description" content="IgelServer documentation: native macOS and iOS SSH clients, profiles, LAN/Tailscale routing, telemetry, systemd, Docker, qBittorrent, SMB, credential vault, release pipeline and the Swift MCP server.">
 <meta name="theme-color" content="#0c0e12">
 <link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -45,8 +45,8 @@
     <a href="#technical">Technical</a>
     <a href="#storage">Storage and security</a>
     <a href="#build">Build and release</a>
-    <a href="#mcp">MCP status</a>
-    <span class="side-note">Clients: macOS 14+ · iOS 27<br>Transport: system SSH / SwiftNIO SSH<br>No agent on the server.</span>
+    <a href="#mcp">MCP server</a>
+    <span class="side-note">Clients: macOS 14+ · iOS 27<br>SSH + Swift MCP (stdio/HTTP)<br>No agent on the server.</span>
   </aside>
 
   <main class="docs-content" id="main">
@@ -58,7 +58,7 @@
       <span class="pill pill--blue">macOS 14+ · iOS 27</span>
       <span class="pill">Swift 6 · SwiftUI · SwiftPM</span>
       <span class="pill pill--amber">v2.2.0 · DMG</span>
-      <span class="pill pill--amber">No MCP server</span>
+      <span class="pill pill--green">MCP: stdio + HTTP</span>
     </div>
 
     <h2 id="overview">Overview</h2>
@@ -98,8 +98,8 @@
 
     <h3>Limitations</h3>
     <ul>
-      <li>There is no Linux, Windows or Steam Deck client in the current tree. The Tauri/Rust client was removed; the server you connect to is still arbitrary.</li>
-      <li>There is no MCP server. The former Rust <code>igelserver-mcp</code> crate was removed with the Tauri client.</li>
+      <li>There is no Linux, Windows or Steam Deck client in the current tree. The client is Apple-only; the server you connect to can be any Linux or Unix host reachable over SSH.</li>
+      <li>The MCP helper is macOS-only. The iOS app keeps App Intents instead; a stdio or loopback HTTP server cannot run in the iOS sandbox.</li>
       <li>The terminal is a command runner with a timeout, not an interactive PTY.</li>
       <li>The macOS vault file is rewritten in place, so an interrupted save can truncate it; keep a backup if the contents matter.</li>
       <li>macOS and iOS keep separate profiles; there is no profile sync between them.</li>
@@ -198,7 +198,7 @@
     </ul>
 
     <h2 id="build">Build and release</h2>
-    <pre><code># macOS tests and iOS build-for-testing
+    <pre><code># macOS tests, iOS build-for-testing and MCP tests
 ./ci.sh test
 
 # macOS .app + DMG (output: dist/IgelServer-v&lt;version&gt;-&lt;arch&gt;.dmg)
@@ -208,23 +208,103 @@
 ./ci.sh test-ios
 ./ci.sh build-ios
 
+# MCP helper only
+./ci.sh test-mcp
+./ci.sh build-mcp
+
 # Release to the shared public repository and update the stable feed
 ./ci.sh release v2.2.0
 ./ci.sh release-public v2.2.0</code></pre>
     <p>Signing and notarization are optional and driven by <code>CODESIGN_IDENTITY</code> and <code>NOTARY_PROFILE</code>. The DMG is the only macOS artifact. Updates read <code>channels/igelserver.json</code> from <code>Chuucommie/IgelTools-Releases</code> first, then fall back to the releases API. The feed publishes <code>macos-aarch64</code> and <code>macos-x86_64</code>; a DMG without an architecture token is rejected. Before replacing the bundle the installer verifies the code signature with <code>codesign</code> and Gatekeeper with <code>spctl</code>; unsigned updates are refused unless <code>SERVERPULSE_ALLOW_UNSIGNED_UPDATES=1</code> is set for local development.</p>
     <p>Tags are namespaced <code>igelserver-v&lt;version&gt;</code> and the updater ignores releases that do not belong to IgelServer. The source repository is private; artifacts are published in the shared public release repository.</p>
 
-    <h2 id="mcp">MCP status</h2>
+    <h2 id="mcp">MCP server</h2>
     <div class="doc-meta">
-      <span class="pill pill--amber">Not implemented</span>
-      <span class="pill">No binary</span>
-      <span class="pill">No contract published</span>
+      <span class="pill pill--green">Available in source</span>
+      <span class="pill">Binary: <code>igelserver-mcp</code></span>
+      <span class="pill">stdio + Streamable HTTP</span>
+      <span class="pill">25 tools</span>
     </div>
-    <div class="callout callout--warn">
-      <span class="dot" aria-hidden="true"></span>
-      <p><strong>No MCP server in the current tree.</strong> The Rust <code>igelserver-mcp</code> helper and its configuration resolution code were removed together with the Tauri client. Nothing in the repository starts a stdio server or exposes the app's operations as MCP tools.</p>
-    </div>
-    <p>An MCP surface would have to reuse the Swift services rather than shell out: profiles from <code>ConfigService</code>, secrets from the vault, and commands through <code>SSHService</code>. Because the vault key is held in the Keychain with a user-presence ACL, a background agent could not unlock it silently, which constrains any future design. The macOS app still enforces the important rules on its own: no arbitrary-command tool is exposed to an agent, identifiers are validated, and secrets never leave the app.</p>
+    <p>The helper in <code>mcp/</code> is a native Swift package. It depends only on Foundation and <code>/usr/bin/ssh</code>, reads the same profiles as the macOS app, and ships inside the app bundle at <code>Contents/Helpers/igelserver-mcp</code>. The packaging script signs it with the app so the shared Keychain and SSH identity keep working.</p>
+
+    <h3>Transports</h3>
+    <table>
+      <thead><tr><th>Mode</th><th>Command</th><th>Endpoint</th><th>Auth</th></tr></thead>
+      <tbody>
+        <tr><td>stdio</td><td><code>igelserver-mcp</code></td><td>stdin/stdout, newline-delimited JSON-RPC</td><td>Local process</td></tr>
+        <tr><td>Streamable HTTP</td><td><code>igelserver-mcp --http</code></td><td><code>POST http://127.0.0.1:8787/mcp</code><br><code>GET …/mcp/server-card</code></td><td>Bearer token on <code>/mcp</code></td></tr>
+      </tbody>
+    </table>
+    <p>HTTP mode validates the <code>Origin</code>, <code>MCP-Protocol-Version</code>, <code>Mcp-Method</code> and <code>Mcp-Name</code> headers against the body, rate-limits per IP (default 120/min), returns 202 for notifications and JSON (not SSE) for a single JSON-RPC body. If <code>IGELSERVER_HTTP_TOKEN</code> is unset the server generates one and prints it on stderr. The listener is bound to loopback; it is not a public endpoint.</p>
+
+    <h3>Configuration</h3>
+    <table>
+      <thead><tr><th>Thing</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Profiles</td><td><code>~/Library/Application Support/IgelServer/servers.json</code>, or <code>IGELSERVER_CONFIG</code>.</td></tr>
+        <tr><td>Profile choice</td><td><code>IGELSERVER_PROFILE</code> (id or name), <code>IGELSERVER_PROFILE_ID</code>, or the active profile.</td></tr>
+        <tr><td>Host / route</td><td><code>IGELSERVER_HOST</code> overrides the host; <code>IGELSERVER_ROUTE=tailscale</code> uses the profile's Tailscale host.</td></tr>
+        <tr><td>Credentials</td><td>Shared Keychain group via <code>IGELSERVER_KEYCHAIN_GROUP</code>; otherwise <code>IGELSERVER_SSH_PASSWORD</code> and <code>IGELSERVER_QBIT_PASSWORD</code>.</td></tr>
+        <tr><td>Scope</td><td><code>IGELSERVER_SCOPE=read|write|destructive|admin</code>; default is <code>read</code>.</td></tr>
+        <tr><td>Audit</td><td><code>IGELSERVER_AUDIT_LOG</code>, default <code>~/Library/Application Support/IgelServer/mcp-audit.jsonl</code>.</td></tr>
+        <tr><td>Tasks</td><td><code>IGELSERVER_TASKS_FILE</code>, default <code>~/Library/Application Support/IgelServer/mcp-tasks.json</code>.</td></tr>
+        <tr><td>HTTP</td><td><code>IGELSERVER_HTTP_HOST</code>, <code>_PORT</code>, <code>_TOKEN</code>, <code>_ALLOWED_ORIGINS</code>, <code>_RATE_LIMIT</code>, <code>_MAX_BODY_BYTES</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Shared Keychain</h3>
+    <p>To avoid putting passwords in the MCP client environment, sign the app and the helper with the same Team ID, set the same <code>IGELSERVER_KEYCHAIN_GROUP</code> (for example <code>TEAMID.com.igeltools.igelserver.shared</code>) on both, and enable <strong>Accesso MCP</strong> in the app's Manutenzione tab. The helper then reads <code>profile.&lt;id&gt;.ssh</code> and <code>profile.&lt;id&gt;.qbit</code> from the shared Keychain. Without the group it falls back to the two environment variables.</p>
+
+    <h3>Tools by scope</h3>
+    <p><code>tools/list</code> is filtered by the configured scope, so a read-only client never sees write or destructive tools.</p>
+    <table>
+      <thead><tr><th>Scope</th><th>Tools</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>read</strong></td>
+          <td><code>profiles.list</code>, <code>profiles.get</code>, <code>profiles.test_connection</code>, <code>telemetry.snapshot</code>, <code>system.info</code>, <code>system.processes</code>, <code>system.logs</code>, <code>docker.list</code>, <code>docker.inspect</code>, <code>docker.logs</code>, <code>systemd.list</code>, <code>systemd.status</code>, <code>systemd.logs</code>, <code>torrent.list</code>, <code>torrent.test_connection</code>, <code>shares.list</code></td>
+        </tr>
+        <tr>
+          <td><strong>write</strong></td>
+          <td><code>docker.action</code>, <code>systemd.action</code>, <code>torrent.pause</code>, <code>torrent.resume</code>, <code>torrent.add</code></td>
+        </tr>
+        <tr>
+          <td><strong>destructive</strong></td>
+          <td><code>torrent.delete</code>, <code>process.kill</code>, <code>docker.prune</code>, <code>maintenance.run_upgrade</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Every tool accepts an optional <code>profile_id</code> unless noted otherwise. The destructive tools require <code>IGELSERVER_SCOPE=destructive</code> and an MCP <code>elicitation/create</code> confirmation before anything runs.</p>
+
+    <h3>Tasks, resources, prompts and skills</h3>
+    <ul>
+      <li><strong>Tasks:</strong> <code>docker.prune</code> and <code>maintenance.run_upgrade</code> return a task when the client advertises <code>io.modelcontextprotocol/tasks</code>. Poll with <code>tasks/get</code>, cancel with <code>tasks/cancel</code>; tasks persist in <code>mcp-tasks.json</code>.</li>
+      <li><strong>Resources:</strong> <code>igelserver://profiles</code>, per-profile <code>telemetry</code>, <code>docker</code>, <code>systemd</code>, <code>torrents</code> and <code>logs/{source}</code>, plus <code>igelserver://docs/security</code> and <code>skill://&lt;name&gt;/SKILL.md</code>.</li>
+      <li><strong>Prompts:</strong> <code>diagnose-server</code>, <code>explain-failed-units</code>, <code>capacity-report</code>, <code>security-audit</code>, <code>torrent-triage</code>.</li>
+      <li><strong>Skills:</strong> <code>homelab-health</code>, <code>docker-maintenance</code>, <code>torrent-hygiene</code>; list with <code>skills/list</code>, read with <code>skills/get</code> or the resource.</li>
+    </ul>
+
+    <h3>Register it</h3>
+    <pre><code>{
+  "mcpServers": {
+    "igelserver": {
+      "command": "/Applications/IgelServer.app/Contents/Helpers/igelserver-mcp",
+      "env": {
+        "IGELSERVER_PROFILE": "home",
+        "IGELSERVER_SCOPE": "read"
+      }
+    }
+  }
+}</code></pre>
+    <p>For HTTP mode, start <code>igelserver-mcp --http</code> and point the client at <code>http://127.0.0.1:8787/mcp</code> with <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+
+    <h3>Security and tests</h3>
+    <ul>
+      <li>Default scope is <code>read</code>; destructive calls require an explicit scope and elicitation. Tool output never contains passwords, tokens or private keys.</li>
+      <li>The audit log records tool, scope, argument hash and outcome, without secrets. SSH uses <code>StrictHostKeyChecking=accept-new</code> and the user's known-hosts; passwords go through an internal <code>SSH_ASKPASS</code> helper, never argv or disk.</li>
+      <li>Container ids, systemd units, torrent hashes, PIDs and signals are validated before use.</li>
+      <li>The package has 21 tests covering parsers, scope, confirmations, tasks, skills and MCP dispatch: <code>(cd mcp &amp;&amp; swift test)</code>. <code>./ci.sh test</code> also builds and tests the helper.</li>
+    </ul>
 
     <div class="docs-next">
       <span>Next</span>

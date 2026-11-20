@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IgelLauncher — IgelTools Docs</title>
-<meta name="description" content="IgelLauncher documentation: macOS-only suite manager, embedded catalog, asset selection, SHA-256 policy, DMG and tar.gz installs, receipts, updates, data paths and the 13-tool MCP server.">
+<meta name="description" content="IgelLauncher documentation: native SwiftUI macOS suite manager, catalog, asset selection, SHA-256 policy, DMG and tar.gz installs, receipts, updates, paths and the 13-tool MCP server.">
 <meta name="theme-color" content="#0c0e12">
 <link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -46,126 +46,110 @@
     <a href="#install">Install pipeline</a>
     <a href="#storage">Storage</a>
     <a href="#mcp">MCP server</a>
-    <a href="#issues">Known issues</a>
-    <span class="side-note">macOS only · Rust 1.95+<br>Install: DMG / tar.gz .app<br>MCP: stdio, 13 tools.</span>
+    <a href="#notes">Limits</a>
+    <span class="side-note">macOS 13+ · SwiftUI · SwiftPM<br>Install: DMG / tar.gz .app<br>MCP: stdio, 13 tools.</span>
   </aside>
 
   <main class="docs-content" id="main">
     <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / IgelLauncher</p>
     <h1>IgelLauncher</h1>
-    <p class="lede">A single native macOS window that installs, updates and opens the IgelTools suite. Rust and egui, an embedded catalog, SHA-256 verification, receipts and a 13-tool MCP server in the same binary.</p>
+    <p class="lede">A native SwiftUI macOS window that installs, updates and opens the IgelTools suite. An embedded catalog, SHA-256 verification, receipts and a 13-tool stdio MCP server in the same binary.</p>
 
     <div class="doc-meta">
-      <span class="pill pill--blue">macOS only</span>
-      <span class="pill">Rust · egui</span>
+      <span class="pill pill--blue">macOS 13+</span>
+      <span class="pill">Swift 5.9+ · SwiftUI · SwiftPM</span>
       <span class="pill">v0.1.0</span>
       <span class="pill pill--green">MCP available</span>
     </div>
 
     <h2 id="overview">Overview</h2>
-    <p>IgelLauncher is the suite manager, not one of the controlled apps. It reads a small catalog embedded in the binary, detects what is installed, checks each app's GitHub releases, chooses the macOS build for the current CPU, verifies the SHA-256 when one is published and installs the result as an <code>.app</code> bundle in <code>~/Applications</code>.</p>
-    <p>The crate compiles only on macOS: <code>main.rs</code> fails the build with <code>compile_error!</code> on any other platform. The app is Rust 2021 with eframe/egui 0.37, no web view and no Electron. The same binary also runs as a stdio MCP server, so the window and an agent share the catalog, release lookup and install code.</p>
+    <p>IgelLauncher is the suite manager, not one of the controlled apps. It reads a catalog embedded in the SwiftPM resource bundle, detects what is installed, checks the shared release repository, chooses the macOS build for the current CPU and installs it in <code>~/Applications</code> after verifying the published SHA-256.</p>
+    <p>The app is native SwiftUI, built with SwiftPM and macOS 13 as the minimum. There is no Electron and no web view. The same executable also runs as a stdio MCP server when the first argument is <code>mcp</code> or <code>--mcp</code>.</p>
 
     <h2 id="functional">Functional documentation</h2>
     <h3>What you can do</h3>
     <ul>
-      <li><strong>Browse the suite.</strong> Three apps in a card grid or a table ordered by status and then name, with search over name, tagline and description, and a filter for installed apps.</li>
-      <li><strong>See install state.</strong> Receipts come first; if there is none, the launcher checks <code>/Applications</code> and <code>~/Applications</code> for the app's known bundle names and marks the copy as <em>external</em>.</li>
-      <li><strong>Install.</strong> Pick a DMG, tar.gz, pkg or ZIP for the Mac's CPU, download it, verify the SHA-256 when one is published and install the <code>.app</code> from a DMG or tar.gz.</li>
-      <li><strong>Update one or all.</strong> Compare versions against GitHub releases, update an app, or queue every app with an installable update; jobs show progress and can be cancelled.</li>
-      <li><strong>Open and remove.</strong> Open an installed app from the window; uninstall only the copies the launcher installed itself. External copies are left alone.</li>
-      <li><strong>Check the launcher.</strong> The launcher checks its own releases too and downloads an update file, verifying it when a checksum is published, but does not replace its running bundle.</li>
-      <li><strong>Work in three languages.</strong> English, Italian and German; <em>Automatic</em> follows the system locale and the choice is kept between runs.</li>
-      <li><strong>Read the log.</strong> The window shows the current log and can copy it; the file also rotates on launch.</li>
-      <li><strong>Use an agent.</strong> <code>igellauncher mcp</code> exposes the catalog, installs, updates, settings and logs over stdio with 13 tools.</li>
+      <li><strong>Browse the suite.</strong> Three apps in a card grid or a table, with search over name, tagline and description, and a filter for installed apps.</li>
+      <li><strong>See install state.</strong> Receipts come first; without one, the launcher checks <code>/Applications</code> and <code>~/Applications</code> for the catalog's bundle names and marks the copy as <em>external</em>.</li>
+      <li><strong>Install.</strong> Pick the macOS DMG, tar.gz, pkg or ZIP for the Mac's CPU, download it, verify the SHA-256 and install an <code>.app</code> from a DMG or tar.gz.</li>
+      <li><strong>Update one or all.</strong> Compare versions against the release repository, update an app, or queue every app with an installable update; jobs show progress and can be cancelled.</li>
+      <li><strong>Open and remove.</strong> Open an installed app from the window; uninstall only the copies the launcher installed itself.</li>
+      <li><strong>Check the launcher.</strong> The launcher checks its own release too and downloads the update file without replacing the running bundle.</li>
+      <li><strong>Work in three languages.</strong> English, Italian and German; <em>Automatic</em> follows the system locale.</li>
+      <li><strong>Read the log.</strong> The window shows the current log and can copy it; the file rotates on launch.</li>
+      <li><strong>Use an agent.</strong> <code>IgelLauncher mcp</code> exposes the catalog, installs, updates, settings and logs over stdio with 13 tools.</li>
+    </ul>
+
+    <h3>Pages</h3>
+    <ul>
+      <li><strong>Library:</strong> the suite, search, All/Installed filter and the grid/table switch.</li>
+      <li><strong>Updates:</strong> per-app rows, <em>Update all</em> and the launcher's own update row.</li>
+      <li><strong>Settings:</strong> language, check on start, pre-releases, checksum policy, GitHub token, install folder, repository overrides and shortcuts to the data folder and log file.</li>
+      <li><strong>Logs:</strong> the rotating log tail with a copy button.</li>
     </ul>
 
     <h3>First run</h3>
     <ol>
-      <li>Start <code>igellauncher</code> or the installed <code>IgelLauncher.app</code>. It creates its folders and loads default settings; <code>settings.json</code> is written when you save the Settings page.</li>
-      <li>If the repositories are private, GitHub answers <em>404</em> and the app reports <em>No release published yet</em>. Add a token in <strong>Settings → GitHub token</strong>, or set <code>IGEL_LAUNCHER_TOKEN</code>.</li>
-      <li>Optionally override the repository for a single app in Settings, or point <code>IGEL_LAUNCHER_MANIFEST</code> at a local JSON feed.</li>
-      <li>Press <strong>Check now</strong> (<code>check_on_start</code> is on by default). Install an app; the launcher downloads, verifies and records a receipt.</li>
+      <li>Run <code>swift run IgelLauncher</code> or the installed <code>IgelLauncher.app</code>. It creates its folders and loads default settings; <code>settings.json</code> is written when you save the Settings page.</li>
+      <li>The default release repository is public. A GitHub token is optional, useful for forks and higher API limits; it is stored as plain text in <code>settings.json</code>.</li>
+      <li>Optionally override the repository for one app, or point <code>IGEL_LAUNCHER_MANIFEST</code> at a local feed.</li>
+      <li>Press <strong>Check for updates</strong> (<code>check_on_start</code> is on by default). Install an app; the launcher downloads, verifies and records a receipt.</li>
     </ol>
-
-    <h3>Pages and layout</h3>
-    <ul>
-      <li><strong>Library:</strong> the suite, search, All/Installed filter and the grid/table switch.</li>
-      <li><strong>Updates:</strong> per-app update rows, <em>Update all</em>, and the launcher's own update row.</li>
-      <li><strong>Settings:</strong> language, check on start, pre-releases, checksum policy, GitHub token, install folder, repository overrides, and shortcuts to the data folder and log file.</li>
-      <li><strong>Logs:</strong> the in-memory tail with a copy button.</li>
-    </ul>
-
-    <h3>Limitations</h3>
-    <ul>
-      <li>macOS only. There is no Linux or Windows build; the crate refuses to compile elsewhere.</li>
-      <li>Installs are limited to DMG and tar.gz archives that contain an <code>.app</code> bundle. A pkg or ZIP is only downloaded for the macOS installer or Finder.</li>
-      <li>Integrity means SHA-256, not code signing. The launcher does not check Developer ID or notarization before copying a bundle.</li>
-      <li>The GitHub token is stored as plain text in <code>settings.json</code>. Treat that file as a credential store.</li>
-      <li>External copies are detected but not updated or removed, because the launcher does not manage them and does not know their version.</li>
-      <li>Self-update is download-only: the file lands in the updates folder and the user decides how to install it.</li>
-      <li>The embedded catalog descriptions are display strings; they can lag the app pages, which remain authoritative.</li>
-      <li>There is no tray icon and no signed or notarized installer yet. <code>install.sh</code> builds a local <code>.app</code>; the source version is 0.1.0.</li>
-    </ul>
 
     <h2 id="technical">Technical documentation</h2>
     <h3>Repository layout</h3>
     <pre><code>igellauncher/
-├── Cargo.toml              # Rust 2021, eframe/egui 0.37
-├── catalog/suite.json      # embedded catalog: three apps + launcher
-├── assets/icons/           # embedded PNG icons
+├── Package.swift            # SwiftPM, macOS 13, Swift 5.9
+├── Sources/IgelLauncher/
+│   ├── IgelLauncherApp.swift # SwiftUI app + `mcp` dispatch
+│   ├── AppModel.swift        # catalog, releases, jobs, receipts
+│   ├── LibraryView.swift / UpdatesView.swift
+│   ├── SettingsView.swift / LogsView.swift / AppDetailView.swift
+│   ├── Installer.swift       # DMG/tar.gz install, external detection
+│   ├── Network.swift         # GitHub release lookup, checksums, download
+│   ├── Storage.swift         # paths, settings, receipts, rotating log
+│   ├── Platform.swift        # macOS CPU and asset selection
+│   ├── MCPServer.swift       # 13-tool stdio server
+│   ├── Theme.swift / Components.swift / Localization.swift
+│   └── Resources/            # suite.json and embedded icons
 ├── docs/preview.png
-├── install.sh              # builds and installs ~/Applications/IgelLauncher.app
-└── src/
-    ├── main.rs             # macOS guard, window, `mcp` dispatch
-    ├── app.rs              # egui pages, jobs, update queue
-    ├── catalog.rs          # embedded JSON, availability, icons
-    ├── platform.rs         # macOS CPU and asset selection
-    ├── net.rs              # GitHub or manifest, downloads, SHA-256
-    ├── install.rs          # DMG/tar.gz install, external detection
-    ├── store.rs            # paths, receipts, rotating log
-    ├── settings.rs         # settings.json
-    ├── mcp.rs              # stdio MCP server and 13 tools
-    ├── version.rs          # semantic-ish version ordering
-    ├── i18n.rs             # EN / IT / DE
-    ├── model.rs            # release, asset, receipt shapes
-    ├── theme.rs            # palette and typography
-    └── util.rs             # paths, shell open, sizes</code></pre>
+└── install.sh                # IgelLauncher.app in ~/Applications</code></pre>
 
-    <h3>Platform and build</h3>
-    <ul>
-      <li><strong>Rust 1.95+</strong> and the Xcode command line tools. <code>cargo run --release</code> opens the window; <code>cargo test</code> runs 30 tests.</li>
-      <li><code>install.sh</code> builds the release binary, writes an <code>Info.plist</code>, generates the <code>.icns</code> with <code>sips</code>/<code>iconutil</code> and installs <code>~/Applications/IgelLauncher.app</code>.</li>
-      <li>The bundle identifier is <code>io.igeltools.launcher</code>; the window app id is <code>io.igeltools.launcher</code>; the plist declares <code>LSMinimumSystemVersion</code> 11.0.</li>
-      <li>The default window is 1120×740, resizable down to 880×560. The icon is the IgelTools brand mark.</li>
-      <li>Only <code>mcp</code> and <code>--mcp</code> are special arguments; everything else starts the window.</li>
-    </ul>
+    <h3>Build</h3>
+    <pre><code>swift build
+swift run IgelLauncher
+./install.sh     # ~/Applications/IgelLauncher.app
+
+# MCP mode
+swift run IgelLauncher mcp</code></pre>
+    <p>Requirements are macOS 13 or later and Xcode 15 or later (Swift 5.9+). <code>install.sh</code> builds the release binary, writes the <code>Info.plist</code>, copies the SwiftPM resource bundle, generates the <code>.icns</code> with <code>sips</code>/<code>iconutil</code> and installs the app in <code>~/Applications</code>. The bundle identifier is <code>io.igeltools.launcher</code>; the executable is <code>IgelLauncher</code>; the plist declares <code>LSMinimumSystemVersion</code> 13.0.</p>
+    <p>The window opens at 1120×740 and can shrink to its minimum content size. There is no automated test target in the repository yet.</p>
 
     <h3>Catalog</h3>
-    <p><code>catalog/suite.json</code> is compiled into the binary with <code>include_str!</code>. It contains the three apps (Igel TVRemote, IgelNotes, IgelServer), the launcher entry, icons and accent colours. For each app the launcher reads:</p>
+    <p><code>Sources/IgelLauncher/Resources/suite.json</code> is copied into the SwiftPM resource bundle. It contains Igel TVRemote, IgelNotes, IgelServer and the launcher entry, with icons and accent colours. For each app the launcher reads:</p>
     <table>
       <thead><tr><th>Field</th><th>Use</th></tr></thead>
       <tbody>
         <tr><td><code>id</code>, <code>name</code>, <code>tagline</code>, <code>description</code></td><td>Display, search and MCP output.</td></tr>
-        <tr><td><code>repo</code></td><td>Default <code>owner/repo</code> for GitHub releases; overridable per app.</td></tr>
-        <tr><td><code>targets</code>, <code>planned</code></td><td>Availability on the current platform. The launcher only asks about macOS.</td></tr>
-        <tr><td><code>mac_bundles</code></td><td>Bundle names used for external detection and for finding the <code>.app</code> inside a DMG or tar.gz.</td></tr>
+        <tr><td><code>repo</code>, <code>release_prefix</code></td><td>Release repository and tag namespace. The default is the shared <code>Chuucommie/IgelTools-Releases</code>.</td></tr>
+        <tr><td><code>targets</code></td><td>Availability on macOS; every shipped app currently targets macOS.</td></tr>
+        <tr><td><code>mac_bundles</code></td><td>Bundle names for external detection and for finding the <code>.app</code> inside a DMG or tar.gz.</td></tr>
         <tr><td><code>icon</code>, <code>accent</code>, <code>web</code></td><td>Embedded icon, UI accent and the website link.</td></tr>
       </tbody>
     </table>
-    <p>Availability is computed from <code>targets</code>/<code>planned</code> for <code>macos</code>, so an app marked planned stays planned instead of pretending to exist. The catalog tests assert that every app has a macOS target, a non-empty <code>mac_bundles</code> list and an embedded icon.</p>
+    <p>Because all apps publish in one repository, the launcher filters releases by <code>release_prefix</code>: <code>igeltvremote</code>, <code>igelnotes</code>, <code>igelserver</code> and <code>igellauncher</code>.</p>
 
     <h3>Release lookup and versioning</h3>
     <ul>
-      <li>GitHub mode calls <code>GET https://api.github.com/repos/&lt;owner&gt;/&lt;repo&gt;/releases?per_page=30</code> with <code>Accept: application/vnd.github+json</code>, API version <code>2022-11-28</code> and user agent <code>IgelLauncher/0.1.0</code>.</li>
-      <li>The token comes from <code>IGEL_LAUNCHER_TOKEN</code> first, then Settings, and is sent as <code>Authorization: Bearer …</code>. It is never returned by MCP.</li>
-      <li>A <em>404</em> is treated as “no releases” and logged as a possible private repository. <em>403/429</em> rate-limit messages become an explicit error.</li>
-      <li>Drafts are removed. Releases are sorted by a parsed version tag (<code>1.2.3</code>, <code>v2.0.0</code>, <code>0.4.1-beta.2</code>); prereleases are included only when <code>allow_prereleases</code> is on.</li>
-      <li><code>IGEL_LAUNCHER_MANIFEST</code> bypasses GitHub entirely and reads a local JSON feed. <code>IGEL_LAUNCHER_DOWNLOAD_BASE</code> rewrites asset URLs to a mirror, keeping only the file name; <code>file://</code> assets are read from disk.</li>
+      <li>GitHub mode calls <code>GET https://api.github.com/repos/&lt;owner&gt;/&lt;repo&gt;/releases?per_page=100</code> with the GitHub JSON media type, API version <code>2022-11-28</code> and user agent <code>IgelLauncher</code>.</li>
+      <li>A 404 means no release and is reported as <em>No release published yet</em>. Other HTTP errors are shown with the status and a short body.</li>
+      <li>Releases are filtered by tag prefix, drafts are ignored, and a prerelease is chosen only when <code>allow_prereleases</code> is on.</li>
+      <li><code>IGEL_LAUNCHER_MANIFEST</code> bypasses GitHub and reads a local JSON feed; <code>IGEL_LAUNCHER_DOWNLOAD_BASE</code> rewrites manifest asset URLs to a mirror.</li>
+      <li>Version comparison strips a leading <code>v</code>, compares numeric components and sorts a prerelease below its release.</li>
     </ul>
 
     <h3>Asset selection</h3>
-    <p>Only macOS assets are considered. For DMG and pkg, the extension is enough; tar.gz and ZIP must mention macOS in the name (<code>macos</code>, <code>mac</code>, <code>darwin</code> or <code>universal</code>). Assets for another architecture are skipped unless they are universal.</p>
+    <p>Only macOS assets are considered. DMG and pkg are accepted by extension; tar.gz and ZIP must mention macOS (<code>macos</code>, <code>mac</code>, <code>darwin</code> or <code>universal</code>). Assets for the other CPU are skipped unless universal.</p>
     <table>
       <thead><tr><th>Preference</th><th>Kind</th><th>Launcher installs it?</th></tr></thead>
       <tbody>
@@ -175,52 +159,50 @@
         <tr><td>4</td><td><code>.zip</code></td><td>No: download only, open in Finder.</td></tr>
       </tbody>
     </table>
-    <p>Architecture tokens match <code>x86_64</code>, <code>x64</code>, <code>amd64</code>, <code>aarch64</code>, <code>arm64</code> and <code>arm-64</code>. A universal asset matches every Mac. An app with no matching macOS asset shows an error instead of an install button.</p>
+    <p>Architecture tokens match <code>x86_64</code>, <code>x64</code>, <code>amd64</code>, <code>aarch64</code>, <code>arm64</code> and <code>arm-64</code>; <code>universal</code> matches both.</p>
 
     <h2 id="install">Install pipeline</h2>
     <ol>
-      <li>Pick the release (latest stable, optional prerelease, or the exact <code>version</code> requested by MCP) and select the asset for the current CPU.</li>
-      <li>Resolve the expected SHA-256: the GitHub asset <code>digest</code> (<code>sha256:…</code>), or the line for the asset in a release file named like <code>SHA256SUMS.txt</code>, <code>*.sha256</code>, <code>checksums.txt</code> or <code>sha256.txt</code>.</li>
+      <li>Pick the latest release for the app and select the best macOS asset for the current CPU.</li>
+      <li>Resolve the expected SHA-256 from the asset <code>sha256</code>, the GitHub <code>digest</code>, or a release file named <code>SHA256SUMS.txt</code>, <code>sha256sums.txt</code>, <code>checksums.txt</code> or <code>*.sha256</code>.</li>
       <li>If no checksum exists and <code>require_checksum</code> is on, refuse the install. The default is on.</li>
-      <li>Download to the data folder's <code>tmp/</code> with a 60-second global timeout and a progress callback; cancellation deletes the partial file.</li>
+      <li>Download to the data folder's <code>tmp/</code>; a cancellation removes the partial file.</li>
       <li>Compute SHA-256. A mismatch deletes the file and aborts.</li>
-      <li><strong>DMG:</strong> <code>hdiutil attach -nobrowse -readonly</code> on a private mount point, find the expected <code>.app</code>, copy it with <code>cp -R</code>, then <code>hdiutil detach</code>.</li>
-      <li><strong>tar.gz:</strong> extract into a scratch folder after rejecting absolute paths and <code>..</code> traversal, find the expected <code>.app</code> (symlinked directories are not followed), then copy it to the install folder.</li>
-      <li>Replace an existing bundle at the target path, write the receipt to <code>installed.json</code>, delete the temporary download and log the result.</li>
+      <li>DMG: <code>hdiutil</code> mounts the image read-only, the expected <code>.app</code> is copied with <code>cp -R</code>, then the image is detached.</li>
+      <li>tar.gz: <code>/usr/bin/tar</code> extracts into a scratch folder; the expected <code>.app</code> is copied to the install folder.</li>
+      <li>Replace an existing bundle, write the receipt to <code>installed.json</code>, delete the temporary download and log the result.</li>
     </ol>
-    <p>The install folder is <code>~/Applications</code> unless <code>install_dir</code> overrides it. The launcher does not run <code>pkg</code> installers and does not unpack ZIP files.</p>
+    <p>The install folder is <code>~/Applications</code> unless <code>install_dir</code> overrides it. pkg and ZIP are never installed by the launcher.</p>
 
-    <h3>Receipts and update logic</h3>
-    <p><code>installed.json</code> maps an app id to <code>version</code>, <code>path</code>, <code>kind</code> (<code>dmg</code> or <code>targz</code>), <code>managed</code> and <code>installed_at</code>. A copy found in <code>/Applications</code> or <code>~/Applications</code> without a receipt is reported as <code>external</code>, <code>managed: false</code>, with no version.</p>
+    <h3>Receipts and updates</h3>
+    <p><code>installed.json</code> maps an app id to <code>version</code>, <code>path</code>, <code>kind</code> (<code>dmg</code> or <code>targz</code>), <code>managed</code> and <code>installed_at</code>. A copy found in <code>/Applications</code> or <code>~/Applications</code> without a receipt is <code>external</code>, <code>managed: false</code>, with no version.</p>
     <ul>
-      <li>A managed app with an installable asset newer than its receipt offers <strong>Update</strong>; with only a pkg/ZIP newer it offers <strong>Download</strong>; otherwise it offers <strong>Open</strong>.</li>
+      <li>A receipted app with an installable asset newer than its version offers <strong>Update</strong>; with only a newer pkg/ZIP it offers <strong>Download</strong>; otherwise <strong>Open</strong>.</li>
       <li>An app with no receipt offers <strong>Install</strong> for DMG/tar.gz, or <strong>Download</strong> for pkg/ZIP.</li>
-      <li>External copies stay at <strong>Installed</strong> and are never updated or uninstalled. <code>uninstall_app</code> refuses them explicitly.</li>
-      <li><em>Update all</em> queues every app with an available update; the queue skips entries whose best asset cannot be installed by the launcher.</li>
-      <li>Version comparison strips a leading <code>v</code>, ignores build metadata, compares numeric components and sorts a prerelease below its release.</li>
+      <li>External copies are never updated or uninstalled. The MCP uninstall tool refuses them.</li>
+      <li><em>Update all</em> queues every app with an available update; the queue skips assets the launcher cannot install.</li>
     </ul>
 
     <h3>Self-update</h3>
-    <p>The launcher checks its own repository with the same release source. <strong>Download update</strong> writes the selected asset to <code>…/updates/</code> and verifies its SHA-256 when one is published. It does not enforce <code>require_checksum</code> for this download and does not replace the running bundle; the window shows the path and an Open button. In-place replacement is on the roadmap.</p>
+    <p>The launcher checks the same shared repository with the <code>igellauncher</code> prefix. <strong>Download update</strong> writes the selected asset to <code>…/updates/</code> and verifies the SHA-256 when one is published. It does not enforce <code>require_checksum</code> for this download and does not replace the running bundle; the window shows the path. In-place replacement is not implemented.</p>
 
     <h2 id="storage">Storage and configuration</h2>
     <table>
       <thead><tr><th>Item</th><th>macOS path</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td>Settings</td><td><code>~/Library/Application Support/io.IgelTools.IgelLauncher/settings.json</code></td><td>Language, prereleases, check on start, checksum policy, token, install folder, repository overrides.</td></tr>
+        <tr><td>Settings</td><td><code>~/Library/Application Support/io.IgelTools.IgelLauncher/settings.json</code></td><td><code>language</code>, <code>allow_prereleases</code>, <code>check_on_start</code>, <code>require_checksum</code>, <code>github_token</code>, <code>install_dir</code>, <code>repos</code>.</td></tr>
         <tr><td>Receipts</td><td><code>…/io.IgelTools.IgelLauncher/installed.json</code></td><td>Only apps installed by the launcher.</td></tr>
         <tr><td>Log</td><td><code>…/io.IgelTools.IgelLauncher/logs/igellauncher.log</code></td><td>Rotated on launch; <code>.1</code> and <code>.2</code> keep the two previous runs. The in-memory view keeps 600 lines.</td></tr>
-        <tr><td>Temporary downloads</td><td><code>…/io.IgelTools.IgelLauncher/tmp/</code></td><td>Deleted after install or on failure.</td></tr>
-        <tr><td>Launcher updates</td><td><code>…/io.IgelTools.IgelLauncher/updates/</code></td><td>Downloaded, verified when a checksum exists, not installed.</td></tr>
-        <tr><td>Cache</td><td><code>~/Library/Caches/io.IgelTools.IgelLauncher/</code></td><td>Created on first run; no persistent app data depends on it.</td></tr>
-        <tr><td>Installed apps</td><td><code>~/Applications/</code></td><td>Editable in Settings; each app's <code>.app</code> lives directly here.</td></tr>
-        <tr><td>Manual downloads</td><td><code>~/Downloads/</code></td><td>Unique file names; checksum verified when one is published.</td></tr>
+        <tr><td>Temporary downloads</td><td><code>…/io.IgelTools.IgelLauncher/tmp/</code></td><td>Deleted after install or failure.</td></tr>
+        <tr><td>Launcher updates</td><td><code>…/io.IgelTools.IgelLauncher/updates/</code></td><td>Downloaded and verified when possible; not installed.</td></tr>
+        <tr><td>Cache</td><td><code>~/Library/Caches/io.IgelTools.IgelLauncher/</code></td><td>Created on first run.</td></tr>
+        <tr><td>Installed apps</td><td><code>~/Applications/</code></td><td>Editable in Settings.</td></tr>
+        <tr><td>Manual downloads</td><td><code>~/Downloads/</code></td><td>Unique names; checksum verified when published.</td></tr>
       </tbody>
     </table>
-    <p>Settings are JSON with these fields: <code>language</code> (<code>auto</code>, <code>en</code>, <code>it</code>, <code>de</code>), <code>allow_prereleases</code>, <code>check_on_start</code>, <code>require_checksum</code>, <code>github_token</code>, <code>install_dir</code> and <code>repos</code> (per-app <code>owner/repo</code>). The GitHub token is plain text and is only reported as a boolean over MCP.</p>
+    <p>The GitHub token is plain text in <code>settings.json</code> and is reported over MCP only as <code>github_token_set</code>. Settings are persisted as JSON with snake_case keys.</p>
 
-    <h3>Local release feed</h3>
-    <p>For testing before a repository is published, set <code>IGEL_LAUNCHER_MANIFEST</code> to a JSON file and optionally <code>IGEL_LAUNCHER_DOWNLOAD_BASE</code> to rewrite asset URLs. A macOS entry looks like this:</p>
+    <h3>Local release feed and hooks</h3>
     <pre><code>{
   "apps": {
     "igelserver": {
@@ -237,100 +219,70 @@
     }
   }
 }</code></pre>
-    <p><code>sha256</code> can be omitted only when <strong>Refuse installs without a published SHA-256</strong> is off. The manifest also accepts <code>html_url</code>, <code>prerelease</code> and <code>notes</code>.</p>
-
-    <h3>Developer hooks</h3>
     <table>
-      <thead><tr><th>Variable / argument</th><th>Effect</th></tr></thead>
+      <thead><tr><th>Variable</th><th>Effect</th></tr></thead>
       <tbody>
-        <tr><td><code>IGEL_LAUNCHER_PAGE=library|updates|settings|log</code></td><td>Open on that page.</td></tr>
-        <tr><td><code>IGEL_LAUNCHER_SELECT=&lt;app id&gt;</code></td><td>Open the details panel for an app.</td></tr>
-        <tr><td><code>IGEL_LAUNCHER_MANIFEST=&lt;path&gt;</code></td><td>Read releases from a local manifest instead of GitHub.</td></tr>
+        <tr><td><code>IGEL_LAUNCHER_MANIFEST=&lt;path&gt;</code></td><td>Read releases from a local manifest.</td></tr>
         <tr><td><code>IGEL_LAUNCHER_DOWNLOAD_BASE=&lt;url&gt;</code></td><td>Rewrite manifest asset URLs to a mirror.</td></tr>
-        <tr><td><code>IGEL_LAUNCHER_TOKEN=&lt;token&gt;</code></td><td>Override the token from Settings.</td></tr>
-        <tr><td><code>igellauncher mcp</code> / <code>--mcp</code></td><td>Run the MCP server on stdio without a window.</td></tr>
+        <tr><td><code>IgelLauncher mcp</code> / <code>--mcp</code></td><td>Run the MCP server without a window.</td></tr>
       </tbody>
     </table>
+    <p><code>sha256</code> can be omitted only when <strong>Refuse installs without a published SHA-256</strong> is off. The manifest also accepts <code>html_url</code>, <code>prerelease</code> and <code>notes</code>.</p>
 
     <h2 id="mcp">MCP server</h2>
     <div class="doc-meta">
       <span class="pill pill--green">Available in source</span>
-      <span class="pill">Binary: <code>igellauncher</code></span>
+      <span class="pill">Binary: <code>IgelLauncher</code></span>
       <span class="pill">Args: <code>mcp</code></span>
       <span class="pill">13 tools</span>
     </div>
-    <p>The launcher binary is also the server. In MCP mode it opens no window: it reads newline-delimited JSON-RPC 2.0 from stdin, writes responses to stdout, and appends operational logs to the rotating log file; only fatal startup errors go to stderr. It advertises protocol <code>2025-06-18</code>, tools with <code>listChanged: false</code>, empty <code>resources/list</code> and <code>prompts/list</code>, and answers <code>ping</code>.</p>
-    <pre><code>igellauncher mcp
+    <p>The app and the server are one executable. In MCP mode it opens no window: it reads newline-delimited JSON-RPC 2.0 from stdin, writes responses to stdout and appends operational logs to the rotating log file. It advertises protocol <code>2025-06-18</code> and tools with <code>listChanged: false</code>.</p>
+    <pre><code>IgelLauncher mcp
 # or
-igellauncher --mcp</code></pre>
+IgelLauncher --mcp</code></pre>
 
-    <h3>Register it with an MCP client</h3>
+    <h3>Register it</h3>
     <pre><code>{
   "mcpServers": {
     "igellauncher": {
-      "command": "/Users/you/Applications/IgelLauncher.app/Contents/MacOS/igellauncher",
+      "command": "/Users/you/Applications/IgelLauncher.app/Contents/MacOS/IgelLauncher",
       "args": ["mcp"]
     }
   }
 }</code></pre>
-    <p>When the launcher is built in place, the binary is <code>target/release/igellauncher</code>; after <code>install.sh</code> it lives inside the app bundle. Use the absolute path.</p>
+    <p>When built in place the binary is <code>.build/release/IgelLauncher</code>; after <code>install.sh</code> it lives inside the app bundle.</p>
 
     <h3>Tools</h3>
     <table>
       <thead><tr><th>Tool</th><th>Arguments</th><th>Kind</th><th>What it does</th></tr></thead>
       <tbody>
-        <tr><td><code>launcher_info</code></td><td>—</td><td>read</td><td>Name, version, protocol version, platform, CPU, app count, data/config/log/settings paths.</td></tr>
-        <tr><td><code>list_apps</code></td><td>—</td><td>read</td><td>Catalog with description, repo, targets, planned platforms, availability on macOS, installed state and website.</td></tr>
-        <tr><td><code>list_installed</code></td><td>—</td><td>read</td><td>Receipts plus external copies, with version, path and <code>managed_by_launcher</code>.</td></tr>
-        <tr><td><code>check_updates</code></td><td><code>app_id?</code></td><td>read · network</td><td>Latest release per app, installed version, update flag and errors; also checks the launcher.</td></tr>
-        <tr><td><code>list_releases</code></td><td><code>app_id</code></td><td>read · network</td><td>Published releases, newest first, with notes, assets and the asset selected for this Mac.</td></tr>
-        <tr><td><code>install_app</code></td><td><code>app_id</code>, <code>version?</code></td><td>write · network · <em>annotated read-only</em></td><td>Download, verify and install a DMG/tar.gz. Rejects pkg/ZIP; enforces <code>require_checksum</code>; writes a receipt.</td></tr>
-        <tr><td><code>update_app</code></td><td><code>app_id</code>, <code>version?</code></td><td>write · network · <em>annotated read-only</em></td><td>Updates an app installed by the launcher; reports <em>already up to date</em> when there is nothing newer.</td></tr>
-        <tr><td><code>download_app</code></td><td><code>app_id</code>, <code>asset?</code></td><td>write · network · <em>annotated read-only</em></td><td>Downloads to <code>~/Downloads</code> without installing. Verifies a checksum when present, but does not enforce the policy.</td></tr>
-        <tr><td><code>open_app</code></td><td><code>app_id</code></td><td>write</td><td>Opens an installed app and returns its path.</td></tr>
-        <tr><td><code>uninstall_app</code></td><td><code>app_id</code></td><td>write · local</td><td>Removes a receipted copy and its receipt; external copies are refused.</td></tr>
-        <tr><td><code>get_settings</code></td><td>—</td><td>read</td><td>Settings, with <code>github_token_set</code> instead of the token.</td></tr>
+        <tr><td><code>launcher_info</code></td><td>—</td><td>read</td><td>Version, platform, CPU, data folders and MCP protocol.</td></tr>
+        <tr><td><code>list_apps</code></td><td>—</td><td>read</td><td>Catalog, repository, targets and install state.</td></tr>
+        <tr><td><code>list_installed</code></td><td>—</td><td>read</td><td>Managed and external copies with path, version and kind.</td></tr>
+        <tr><td><code>check_updates</code></td><td>—</td><td>read · network</td><td>Checks every app and the launcher; no per-app filter.</td></tr>
+        <tr><td><code>list_releases</code></td><td><code>app_id</code></td><td>read · network</td><td>Releases for one app and the selected macOS asset.</td></tr>
+        <tr><td><code>install_app</code></td><td><code>app_id</code></td><td>write · network</td><td>Download, verify and install the latest DMG/tar.gz. Rejects pkg/ZIP; enforces <code>require_checksum</code>; writes a receipt.</td></tr>
+        <tr><td><code>update_app</code></td><td><code>app_id</code></td><td>write · network</td><td>Updates a receipted app; errors if it is not installed.</td></tr>
+        <tr><td><code>download_app</code></td><td><code>app_id</code>, <code>asset?</code></td><td>write · network</td><td>Downloads to <code>~/Downloads</code>; enforces the checksum policy.</td></tr>
+        <tr><td><code>open_app</code></td><td><code>app_id</code></td><td>write</td><td>Opens a managed or external copy.</td></tr>
+        <tr><td><code>uninstall_app</code></td><td><code>app_id</code></td><td>write · destructive</td><td>Removes a receipted copy and its receipt; external copies are refused.</td></tr>
+        <tr><td><code>get_settings</code></td><td>—</td><td>read</td><td>Settings with <code>github_token_set</code>, never the token.</td></tr>
         <tr><td><code>set_settings</code></td><td>any field</td><td>write</td><td>Language, prereleases, check on start, checksum policy, install folder, token, repository overrides.</td></tr>
-        <tr><td><code>get_logs</code></td><td><code>limit?</code></td><td>read</td><td>Tail of the in-memory log, 1–500 lines, default 100.</td></tr>
+        <tr><td><code>get_logs</code></td><td>—</td><td>read</td><td>Last 300 log lines; there is no limit argument.</td></tr>
       </tbody>
     </table>
+    <p>A successful call returns one <code>text</code> content block with pretty-printed JSON. Tool failures set <code>isError: true</code>. The launcher annotations are correct: install/update/download are not read-only, and uninstall declares <code>destructiveHint</code>.</p>
 
-    <h3>Example</h3>
-    <pre><code>{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
-
-{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{
-  "name": "check_updates",
-  "arguments": {"app_id": "igelserver"}
-}}</code></pre>
-    <p>A successful call returns one <code>text</code> content block with pretty-printed JSON and <code>isError: false</code>. Tool failures keep the JSON-RPC response valid and set <code>isError: true</code> with the message in the text block. A parse error is <code>-32700</code>; an unknown method is <code>-32601</code>.</p>
-
-    <h2 id="issues">Known issues and security notes</h2>
-    <div class="callout callout--warn">
-      <span class="dot" aria-hidden="true"></span>
-      <p><strong>Read-only annotations are wrong for three tools.</strong> In the current source, <code>install_app</code>, <code>update_app</code> and <code>download_app</code> declare <code>readOnlyHint: true</code> even though they write files. An MCP host that gates approval on that hint will not prompt. Treat the server as trusted until the annotations are corrected.</p>
-    </div>
-    <div class="callout callout--warn">
-      <span class="dot" aria-hidden="true"></span>
-      <p><strong>State is loaded at server start.</strong> The MCP process loads settings, receipts and external installs once. <code>set_settings</code> writes the file but later calls keep the startup settings; <code>install_app</code> and <code>uninstall_app</code> write receipts but <code>list_installed</code> and <code>open_app</code> keep the startup snapshot. Restart the server to make those changes visible inside the same session.</p>
-    </div>
+    <h2 id="notes">Limits and security notes</h2>
     <ul>
-      <li><strong>Checksum policy scope.</strong> <code>require_checksum</code> is enforced by <code>install_app</code>, <code>update_app</code> and the window's install path. It is not enforced by <code>download_app</code>, the window's download-only action or the launcher's own self-update download; those verify only when a checksum is published.</li>
-      <li><strong>No signature verification.</strong> The launcher checks SHA-256, then copies the <code>.app</code>. It does not verify Developer ID or notarization with <code>codesign</code> or <code>spctl</code>.</li>
-      <li><strong>Token on disk.</strong> <code>github_token</code> is plain text in <code>settings.json</code>. MCP reports only <code>github_token_set</code>, but the file itself is readable by the user and anything that can read the home folder.</li>
-      <li><strong>Local stdio only.</strong> There is no TCP listener. An agent must be able to start the binary as the same user.</li>
-      <li><strong>External installs stay external.</strong> The server refuses to uninstall a copy it did not install, even if the bundle name matches an app in the catalog.</li>
-      <li><strong>Download URLs are trusted as published.</strong> The checksum decides whether an install proceeds; the launcher does not restrict asset hosts beyond the URL in the release.</li>
+      <li><strong>macOS only.</strong> No Linux or Windows build, and no cross-platform runtime.</li>
+      <li><strong>No signature verification.</strong> Integrity means SHA-256; the launcher does not check Developer ID or notarization before copying a bundle.</li>
+      <li><strong>Token on disk.</strong> <code>github_token</code> is plain text in <code>settings.json</code>.</li>
+      <li><strong>Self-update is download-only</strong> and does not enforce <code>require_checksum</code>; it verifies only when a checksum is published.</li>
+      <li><strong>External installs stay external:</strong> they are listed and can be opened, but not updated or uninstalled.</li>
+      <li><strong>Catalog descriptions are display strings.</strong> The current <code>suite.json</code> still contains older copy for IgelNotes and IgelServer; the app pages are authoritative.</li>
+      <li>No tray icon and no signed/notarized launcher DMG yet. <code>install.sh</code> builds a local bundle.</li>
     </ul>
-
-    <h3>Build and test</h3>
-    <pre><code>cargo run --release          # the window
-cargo test                   # 30 tests
-./install.sh                 # IgelLauncher.app in ~/Applications
-
-# Screenshot frame for documentation
-cargo build --features screenshot
-EFRAME_SCREENSHOT_TO=/tmp/igellauncher.png cargo run --features screenshot</code></pre>
-    <p>The 30 tests cover version ordering, macOS CPU asset selection, checksum parsing, catalog integrity, settings round-trips, log rotation, tar.gz extraction, the tar.gz install/uninstall path, external bundle detection, the MCP handshake and tool listing, and URL/file helpers.</p>
 
     <div class="docs-next">
       <span>Next</span>

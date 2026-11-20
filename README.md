@@ -1,8 +1,8 @@
 # IgelTools Docs
 
-Documentation for the IgelTools suite and the Model Context Protocol server it
-currently ships. This repository contains **documentation only** — no app source
-and no marketing copy.
+Documentation for the IgelTools suite and the four Model Context Protocol servers
+it currently ships. This repository contains **documentation only** — no app
+source and no marketing copy.
 
 Live site: <https://chuucommie.github.io/IgelTools-docs/>
 
@@ -14,10 +14,10 @@ and does not carry protocols, file paths, security details or MCP schemas.
 ```
 index.html               suite overview, status and quick links
 architecture.html        shared storage, security, releases and MCP rules
-apps/igeltvremote.html   TV protocols, discovery, pairing, credentials, status
-apps/igelnotes.html      21 block types, SwiftData, Appwrite, intents, status
-apps/igelserver.html     native macOS/iOS clients, SSH model, vault, status
-apps/igellauncher.html   functional + technical + MCP tools
+apps/igeltvremote.html   TV protocols, intents, watch, 12-tool MCP
+apps/igelnotes.html      21 blocks, SwiftData, Appwrite, 34-tool MCP
+apps/igelserver.html     macOS/iOS clients, SSH model, vault, 25-tool MCP
+apps/igellauncher.html   SwiftUI suite manager and 13-tool MCP
 mcp/index.html           MCP overview, registration and status
 assets/css/style.css     palette and base styles (copied from the marketing site)
 assets/css/docs.css      documentation layout
@@ -45,9 +45,10 @@ Then open <http://localhost:8000>.
 3. **No secrets.** Never paste tokens, passwords, keys or real hostnames in
    examples.
 4. **MCP is normative.** The conventions on the architecture page apply to every
-   server that exists: stdio, JSON-RPC 2.0, newline-delimited, text content
-   blocks, `isError`, annotations, no secrets in results, logs on stderr. Do not
-   document a contract as available unless the binary or module is in the tree.
+   server that exists: JSON-RPC 2.0, text content blocks, `isError`, annotations,
+   no secrets in results, logs away from stdout. Transports are stdio or loopback
+   HTTP; do not document a server as available unless the binary or module is in
+   the tree.
 5. **Keep the marketing site out.** If a sentence belongs on the marketing site,
    it belongs in `igeltools-web` instead.
 
@@ -66,4 +67,4 @@ renamed or moved to a custom domain.
 | `IgelTVRemote` | TV remote source and tests |
 | `IgelNotes` | Notes source |
 | `IgelServer` | IgelServer source: native macOS package and iOS project |
-| `igellauncher` | Launcher source, including the `mcp` module |
+| `igellauncher` | SwiftUI launcher source, including the `mcp` mode |

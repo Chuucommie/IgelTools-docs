@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MCP overview — IgelTools Docs</title>
-<meta name="description" content="IgelTools MCP status: the launcher server, registration, conventions, and why the Apple apps do not expose MCP servers yet.">
+<meta name="description" content="IgelTools MCP overview: the four current servers, stdio and loopback HTTP transports, registration, scopes, tokens, tool counts and security.">
 <meta name="theme-color" content="#0c0e12">
 <link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -41,81 +41,103 @@
     <a href="../apps/igellauncher.html">IgelLauncher</a>
     <h2>Agents</h2>
     <a href="index.html">MCP overview</a>
-    <a href="../apps/igellauncher.html#mcp">Launcher tools</a>
-    <a href="../apps/igelserver.html#mcp">Server status</a>
-    <a href="../apps/igeltvremote.html#mcp">TVRemote status</a>
-    <a href="../apps/igelnotes.html#mcp">Notes status</a>
-    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+    <a href="../apps/igellauncher.html#mcp">Launcher</a>
+    <a href="../apps/igelserver.html#mcp">Server</a>
+    <a href="../apps/igeltvremote.html#mcp">TVRemote</a>
+    <a href="../apps/igelnotes.html#mcp">Notes</a>
+    <span class="side-note">Protocol 2025-06-18<br>stdio + loopback HTTP<br>All servers are local.</span>
   </aside>
 
   <main class="docs-content" id="main">
     <p class="breadcrumb"><a href="../index.html">Docs</a> / MCP</p>
-    <h1>One app, one server, for now.</h1>
-    <p class="lede">IgelTools treats an agent as another user of the same app, but only where a real server exists. IgelLauncher ships one over stdio. IgelServer, Igel TVRemote and IgelNotes do not; their current agent surface is App Intents or nothing.</p>
+    <h1>Four servers, one local model.</h1>
+    <p class="lede">Every IgelTools app now exposes an MCP surface. Three are stdio binaries; IgelNotes runs a loopback HTTP server inside the Mac app (the runtime can bind on iPadOS, but the iPad UI does not expose it yet). None is reachable from the network.</p>
 
     <div class="doc-meta">
       <span class="pill pill--green">Protocol 2025-06-18</span>
       <span class="pill">JSON-RPC 2.0</span>
-      <span class="pill">Newline-delimited stdio</span>
+      <span class="pill">stdio · loopback HTTP</span>
+      <span class="pill">84 tools total</span>
     </div>
 
     <h2 id="status">Server status</h2>
     <table>
-      <thead><tr><th>App</th><th>Server</th><th>Transport</th><th>State</th><th>Reference</th></tr></thead>
+      <thead><tr><th>App</th><th>Server</th><th>Transport</th><th>Tools</th><th>Reference</th></tr></thead>
       <tbody>
         <tr>
           <td><strong>IgelLauncher</strong></td>
-          <td><code>igellauncher mcp</code></td>
+          <td><code>IgelLauncher mcp</code></td>
           <td>stdio</td>
-          <td>Available in source</td>
-          <td><a href="../apps/igellauncher.html#mcp">13 tools</a></td>
+          <td>13</td>
+          <td><a href="../apps/igellauncher.html#mcp">Tools</a></td>
         </tr>
         <tr>
           <td><strong>IgelServer</strong></td>
-          <td>—</td>
-          <td>—</td>
-          <td>No server in the current tree</td>
-          <td><a href="../apps/igelserver.html#mcp">Status</a></td>
+          <td><code>igelserver-mcp</code></td>
+          <td>stdio · Streamable HTTP</td>
+          <td>25 + tasks/skills</td>
+          <td><a href="../apps/igelserver.html#mcp">Tools</a></td>
         </tr>
         <tr>
           <td><strong>Igel TVRemote</strong></td>
-          <td>—</td>
-          <td>—</td>
-          <td>Not implemented; App Intents only</td>
-          <td><a href="../apps/igeltvremote.html#mcp">Status</a></td>
+          <td><code>igeltvremote-mcp</code></td>
+          <td>stdio</td>
+          <td>12</td>
+          <td><a href="../apps/igeltvremote.html#mcp">Tools</a></td>
         </tr>
         <tr>
           <td><strong>IgelNotes</strong></td>
-          <td>—</td>
-          <td>—</td>
-          <td>Not implemented; App Intents only</td>
-          <td><a href="../apps/igelnotes.html#mcp">Status</a></td>
+          <td>In-app server</td>
+          <td>loopback HTTP (Mac UI)</td>
+          <td>34 + resources/prompts</td>
+          <td><a href="../apps/igelnotes.html#mcp">Tools</a></td>
         </tr>
       </tbody>
     </table>
-    <p>IgelLauncher is the only server today: it is a macOS binary with 13 tools. The other three apps do not have servers: IgelServer's Rust helper was removed with its Tauri client, and Igel TVRemote and IgelNotes expose App Intents but no MCP binary. A future server would need a macOS process that opens the app's own store and Keychain, so these remain design targets rather than contracts with a binary behind them.</p>
-    <div class="callout callout--warn">
-      <span class="dot" aria-hidden="true"></span>
-      <p><strong>Launcher annotation caveat.</strong> In the current source, <code>install_app</code>, <code>update_app</code> and <code>download_app</code> declare <code>readOnlyHint: true</code> although they write files. Do not rely on host approval prompts for those tools until the annotations are fixed. Details in the <a href="../apps/igellauncher.html#issues">launcher page</a>.</p>
-    </div>
+    <p>IgelServer and Igel TVRemote live inside their macOS app bundles. IgelNotes is not a separate binary: the server starts from <strong>Settings → Server MCP</strong> on Mac and is off by default. The iPad runtime exists but the current iPad UI has no toggle; iPhone never hosts a stdio server.</p>
 
     <h2 id="register">Register a server</h2>
-    <h3>Claude Desktop / Claude Code style configuration</h3>
-    <p>Most clients accept an <code>mcpServers</code> object. Use the absolute path to the binary and the arguments it needs:</p>
+    <h3>stdio: launcher, server, TV remote</h3>
     <pre><code>{
   "mcpServers": {
     "igellauncher": {
-      "command": "/Users/you/Applications/IgelLauncher.app/Contents/MacOS/igellauncher",
+      "command": "/Users/you/Applications/IgelLauncher.app/Contents/MacOS/IgelLauncher",
       "args": ["mcp"]
+    },
+    "igelserver": {
+      "command": "/Applications/IgelServer.app/Contents/Helpers/igelserver-mcp",
+      "env": { "IGELSERVER_PROFILE": "home", "IGELSERVER_SCOPE": "read" }
+    },
+    "igeltvremote": {
+      "command": "/Applications/Igel TVRemote.app/Contents/Helpers/igeltvremote-mcp"
     }
   }
 }</code></pre>
 
+    <h3>HTTP: IgelNotes (and optional IgelServer HTTP)</h3>
+    <pre><code>{
+  "mcpServers": {
+    "igelnotes": {
+      "type": "http",
+      "url": "http://127.0.0.1:8765/mcp",
+      "headers": { "Authorization": "Bearer &lt;token from Settings → Server MCP&gt;" }
+    },
+    "igelserver": {
+      "type": "http",
+      "url": "http://127.0.0.1:8787/mcp",
+      "headers": { "Authorization": "Bearer &lt;IGELSERVER_HTTP_TOKEN&gt;" }
+    }
+  }
+}</code></pre>
+    <p>IgelServer HTTP mode is started explicitly with <code>igelserver-mcp --http</code>. Its server card is at <code>GET /mcp/server-card</code>. IgelNotes starts its listener when the toggle is enabled; the endpoint path is fixed at <code>/mcp</code>.</p>
+
     <h3>Claude Code</h3>
-    <pre><code>claude mcp add igellauncher -- /Users/you/Applications/IgelLauncher.app/Contents/MacOS/igellauncher mcp</code></pre>
+    <pre><code>claude mcp add igellauncher -- /Users/you/Applications/IgelLauncher.app/Contents/MacOS/IgelLauncher mcp
+claude mcp add igelserver -- /Applications/IgelServer.app/Contents/Helpers/igelserver-mcp
+claude mcp add igeltvremote -- "/Applications/Igel TVRemote.app/Contents/Helpers/igeltvremote-mcp"
+claude mcp add --transport http igelnotes http://127.0.0.1:8765/mcp --header "Authorization: Bearer &lt;token&gt;"</code></pre>
 
     <h3>Any stdio client</h3>
-    <p>Start the binary as a child process and exchange one JSON object per line on stdin/stdout. The first exchange is:</p>
     <pre><code>{"jsonrpc":"2.0","id":1,"method":"initialize","params":{
   "protocolVersion": "2025-06-18",
   "capabilities": {},
@@ -125,41 +147,67 @@
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}</code></pre>
 
     <h2 id="conventions">Conventions</h2>
-    <p>The launcher implements the following conventions. They are the rules a future server for any of the Apple apps would have to follow.</p>
-    <ul>
-      <li><strong>Tools only.</strong> The server exposes <code>tools</code>; <code>resources/list</code> and <code>prompts/list</code> return empty arrays.</li>
-      <li><strong>Text results.</strong> A successful call returns one <code>text</code> content block with pretty-printed JSON. A failed tool returns <code>isError: true</code> and a readable message.</li>
-      <li><strong>Annotations.</strong> Read-only tools set <code>readOnlyHint</code>; tools that use the network set <code>openWorldHint</code>. A host can use them to require approval.</li>
-      <li><strong>No secrets.</strong> The launcher reports <code>github_token_set</code>. A future server that reads profiles would report <code>password_set</code> and similar booleans. Tokens and passwords are never returned.</li>
-      <li><strong>Logging.</strong> The app log, with fatal startup errors on stderr. stdout is the protocol channel.</li>
-      <li><strong>Local process.</strong> No TCP listener. To reach another machine, run the MCP server on the machine that owns the app.</li>
-    </ul>
+    <table>
+      <thead><tr><th>Rule</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Wire protocol</td><td>JSON-RPC 2.0; newline-delimited on stdio, JSON body over HTTP.</td></tr>
+        <tr><td>MCP version</td><td><code>2025-06-18</code>. IgelNotes accepts older client versions; IgelServer HTTP validates newer protocol headers.</td></tr>
+        <tr><td>Bindings</td><td>No listener for stdio. IgelNotes binds <code>127.0.0.1:8765</code>; IgelServer HTTP binds <code>127.0.0.1:8787</code>.</td></tr>
+        <tr><td>Auth</td><td>Bearer token for HTTP. IgelNotes stores it in the Keychain; IgelServer reads or generates <code>IGELSERVER_HTTP_TOKEN</code>.</td></tr>
+        <tr><td>Tool results</td><td>Text block with JSON. Tool failures use <code>isError: true</code>; protocol failures use JSON-RPC errors.</td></tr>
+        <tr><td>Scopes</td><td>IgelServer and IgelNotes filter tools by read/write/destructive profile. The launcher and TV remote gate per-tool hints and flags.</td></tr>
+        <tr><td>Resources / prompts</td><td>IgelNotes and IgelServer expose both. Igel TVRemote exposes resources. IgelLauncher is tools-only.</td></tr>
+        <tr><td>Annotations</td><td><code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>; network tools may set <code>openWorldHint</code>.</td></tr>
+        <tr><td>Secrets</td><td>Never returned. Tokens and passwords are reported as boolean <code>*_set</code> fields.</td></tr>
+        <tr><td>Logging</td><td>stderr and/or the app log file. stdout is always the protocol channel.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Error codes</h3>
+    <table>
+      <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>-32700</code></td><td>Parse error.</td></tr>
+        <tr><td><code>-32601</code></td><td>Unknown method.</td></tr>
+        <tr><td><code>-32602</code></td><td>Invalid params.</td></tr>
+        <tr><td><code>isError: true</code></td><td>The tool ran and failed; the text explains why.</td></tr>
+      </tbody>
+    </table>
 
     <h2 id="security">Security guidance</h2>
     <ul>
-      <li>An MCP server is as powerful as the app it belongs to. Only register servers in agents you trust, and gate write tools with the host's approval mechanism.</li>
-      <li>Prefer read-only tools for exploration; ask the agent to call <code>list_*</code> before actions.</li>
-      <li>Keep the launcher's GitHub token in the MCP client's environment, not in prompts or logs. If it is saved in Settings, it is plain text in <code>settings.json</code>.</li>
-      <li>Review the install path before granting a launcher install: install and update enforce the checksum policy, but the target directory comes from Settings.</li>
-      <li>Run the server as the same user as the app; do not run it as root.</li>
+      <li>An MCP server is as powerful as the app it belongs to. Only register servers in agents you trust and gate write tools with the host's approval mechanism.</li>
+      <li>Prefer read-only modes for exploration: <code>IGELSERVER_SCOPE=read</code>, the IgelNotes <em>Sola lettura</em> profile, <code>--read-only</code> for TVRemote.</li>
+      <li>HTTP servers are loopback-only by design. Do not proxy them to a network interface without adding your own authentication and TLS.</li>
+      <li>IgelNotes and IgelServer keep their bearer tokens in the Keychain or in the server environment. Do not paste tokens into prompts or logs.</li>
+      <li>IgelServer destructive tools require <code>IGELSERVER_SCOPE=destructive</code> plus an elicitation confirmation; they are never available in read scope.</li>
+      <li>The launcher stores an optional GitHub token in plain text in <code>settings.json</code>; the server reports only whether it is set.</li>
+      <li>Review the install path before a launcher install: the checksum is enforced, but the target directory comes from Settings.</li>
+      <li>Run each server as your user; none needs root.</li>
     </ul>
 
     <h2 id="troubleshooting">Troubleshooting</h2>
     <table>
       <thead><tr><th>Symptom</th><th>Cause and fix</th></tr></thead>
       <tbody>
-        <tr><td><em>No release published</em></td><td>The repository is private or has no releases. Add a GitHub token in the launcher, or publish a tagged release.</td></tr>
-        <tr><td><em>rate-limit</em></td><td>GitHub's unauthenticated limit was reached. Add a token; the launcher maps this to a readable error.</td></tr>
-        <tr><td><em>checksum mismatch</em></td><td>The asset and the published checksum disagree. The download is deleted; do not install it manually.</td></tr>
+        <tr><td><em>No release published yet</em> (launcher)</td><td>The repository has no release or the tag prefix does not match. Check the shared release repository and the app's <code>release_prefix</code>.</td></tr>
+        <tr><td><em>rate-limit</em> (launcher)</td><td>GitHub's unauthenticated limit was reached. Add a token in Settings.</td></tr>
+        <tr><td><em>checksum mismatch</em></td><td>The asset and checksum disagree. The download is deleted and the install stops.</td></tr>
+        <tr><td><em>scope_denied</em> (server)</td><td>The requested tool is above <code>IGELSERVER_SCOPE</code>. Raise the scope deliberately or use a read-only tool.</td></tr>
+        <tr><td>SSH failure (server)</td><td>The helper uses <code>/usr/bin/ssh</code>, the profile key and <code>BatchMode=yes</code>. Check the profile, key and known hosts; read the audit log for the failing tool.</td></tr>
+        <tr><td><em>not paired</em> (TVRemote)</td><td>Pair the TV in the app first. The MCP server cannot pair, launch apps or run discovery.</td></tr>
+        <tr><td><em>unsupported</em> (TVRemote)</td><td>The protocol lacks that capability; the error carries a hint. Use <code>server.info</code> or <code>tvs.get</code> first.</td></tr>
+        <tr><td>IgelNotes returns 401</td><td>Token missing or regenerated. Copy the current token from Settings → Server MCP.</td></tr>
+        <tr><td>IgelNotes is not reachable</td><td>The server is off by default, is exposed in the Mac settings, and has no iPad toggle yet. Enable it on the Mac and check the port.</td></tr>
       </tbody>
     </table>
 
     <h2 id="roadmap">Roadmap</h2>
     <ul>
-      <li>Servers for IgelServer, Igel TVRemote and IgelNotes, built as macOS processes that reuse each app's store and Keychain.</li>
-      <li>Optional Streamable HTTP transport for agents that cannot start a process.</li>
-      <li>MCP resources for release notes and app documentation, and prompts for common workflows.</li>
-      <li>In-place launcher self-update, which the MCP surface will expose once the window can do it.</li>
+      <li>Keep the four servers in sync as the apps evolve; add integration tests for each transport.</li>
+      <li>More resources and prompts where they help agents avoid guessing: release notes, diagnostics and common workflows.</li>
+      <li>In-place launcher self-update, exposed through the same MCP surface once the window can do it.</li>
+      <li>Optional remote transport hardening for IgelServer HTTP; loopback remains the default.</li>
     </ul>
 
     <div class="docs-next">

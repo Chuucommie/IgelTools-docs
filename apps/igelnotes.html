@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IgelNotes — IgelTools Docs</title>
-<meta name="description" content="IgelNotes documentation: 21 block types, SwiftData local store, optional Appwrite sync, App Intents, AI providers, Kigel AI skills and verification.">
+<meta name="description" content="IgelNotes documentation: 21 block types, SwiftData, optional Appwrite sync, 17 App Intents, Apple Intelligence, Xcode/Catalyst build and the 34-tool local MCP server.">
 <meta name="theme-color" content="#0c0e12">
 <link rel="icon" href="../assets/icons/igeltools-64.png" type="image/png" sizes="64x64">
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -44,94 +44,96 @@
     <a href="#functional">Functional</a>
     <a href="#technical">Technical</a>
     <a href="#sync">Sync and auth</a>
-    <a href="#assistant">Assistant and skills</a>
+    <a href="#assistant">Assistant and intents</a>
+    <a href="#mcp">MCP server</a>
     <a href="#build">Build and verify</a>
-    <a href="#mcp">MCP status</a>
-    <span class="side-note">iOS 18+ · iPadOS 18+ · macOS 15+<br>Store: SwiftData, local<br>Sync: Appwrite (optional).</span>
+    <span class="side-note">iOS/iPadOS 18+ · Mac Catalyst<br>Store: SwiftData, local<br>MCP: loopback HTTP (Mac UI), 34 tools.</span>
   </aside>
 
   <main class="docs-content" id="main">
     <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / IgelNotes</p>
     <h1>IgelNotes</h1>
-    <p class="lede">A block editor for the Apple stack: 21 block types, PencilKit drawing, SwiftData storage, optional Appwrite sync, Siri intents and an assistant that can read and write notes.</p>
+    <p class="lede">A block editor for the Apple stack: 21 block types, PencilKit drawing, SwiftData storage, optional Appwrite sync, 17 App Intents, a real Apple Intelligence provider and a 34-tool MCP server on Mac.</p>
 
     <div class="doc-meta">
-      <span class="pill pill--blue">iPhone · iPad · Mac</span>
+      <span class="pill pill--blue">iPhone · iPad · Mac Catalyst</span>
       <span class="pill">SwiftUI · SwiftData · Appwrite</span>
+      <span class="pill pill--green">MCP: local HTTP</span>
       <span class="pill pill--amber">CloudKit not active</span>
-      <span class="pill pill--amber">No MCP server</span>
-      <span class="pill pill--amber">No release yet</span>
     </div>
 
     <h2 id="overview">Overview</h2>
-    <p>A note is an ordered list of typed blocks stored in SwiftData on the device. The app runs fully local. Synchronisation is optional and goes to an Appwrite instance the user configures; CloudKit is not enabled in the current source, despite the model comments and sharing views that mention it.</p>
-    <p>The same note is the unit used by the editor, the Siri intents and the assistant. An external agent reaches the app through a configured AI provider or through App Intents. There is no IgelTools account and no dedicated HTTP endpoint for an agent.</p>
+    <p>A note is an ordered list of typed blocks stored in SwiftData on the device. The app runs fully local. Synchronisation is optional and goes to an Appwrite instance the user configures; CloudKit is still not enabled. On Mac the app can start a loopback MCP server, off by default, that exposes notes, blocks, tables, tags, workspaces, skills and sync status to an agent. The transport can run on iPadOS too, but the current iPad UI does not expose the toggle; iPhone has no server.</p>
+    <p>The project targets iOS 18 for iPhone and iPad. Mac support comes from Mac Catalyst and <em>Designed for iPad</em>; a native macOS target is not in the Xcode project yet. The Xcode project is generated from <code>project.yml</code> with XcodeGen.</p>
 
     <h2 id="functional">Functional documentation</h2>
     <h3>What you can do</h3>
     <ul>
-      <li><strong>Write in blocks.</strong> Headings, text, todos, bullet and numbered lists, toggles, quotes, code, dividers, tables, drawings, images, sub-pages, page links, callouts, video, audio, files and web bookmarks: 21 types in total.</li>
-      <li><strong>Tables.</strong> Columns, rows, header row, inline cell editing, add/remove column and row. Table data is JSON stored on the block.</li>
-      <li><strong>Draw.</strong> A PencilKit canvas as a block, with Apple Pencil and Scribble on iPad. The drawing is stored as <code>PKDrawing</code> data.</li>
-      <li><strong>Organise.</strong> Workspaces, tags, favourites, a Notion-style emoji and cover, nested notes, links between pages, multi-select move and duplicate.</li>
-      <li><strong>Find.</strong> Search over titles and block content, plus filters for favourites and tags. The sidebar splits shared and private notes.</li>
-      <li><strong>Recover.</strong> A trash with restore and permanent delete; notes older than 30 days are purged automatically.</li>
+      <li><strong>Write in blocks.</strong> Headings, text, todos, bullet and numbered lists, toggles, quotes, code, dividers, tables, drawings, images, sub-pages, page links, callouts, video, audio, files and web bookmarks: 21 types.</li>
+      <li><strong>Tables.</strong> Columns, rows, header row, inline cell editing, add/remove column and row.</li>
+      <li><strong>Draw.</strong> A PencilKit canvas as a block, with Apple Pencil and Scribble on iPad.</li>
+      <li><strong>Organise.</strong> Workspaces, tags, favourites, emoji and cover, nested notes, links between pages, multi-select move and duplicate.</li>
+      <li><strong>Find and recover.</strong> Search over titles and block content, tag/favourite filters, a trash with restore and a 30-day automatic purge.</li>
       <li><strong>Start from a template.</strong> Blank, shopping list, meeting notes, quick note and journal.</li>
-      <li><strong>Dictate.</strong> On-device speech recognition through <code>SFSpeechRecognizer</code> (Italian locale), with audio playback.</li>
-      <li><strong>Use Siri and Shortcuts.</strong> Create, append, search and open notes; build a shopping list from dictated items.</li>
-      <li><strong>Work with an assistant.</strong> OpenAI, Anthropic, Ollama or Apple Intelligence, with keys in the Keychain. Kigel AI can chat, generate blocks and manage notes. The Apple Intelligence service is still a rule-based mock, so use a remote or local model for real output.</li>
-      <li><strong>Sync optionally.</strong> Pull and push blocks to Appwrite, with a realtime WebSocket subscription when the endpoint is a hostname.</li>
-      <li><strong>Import.</strong> Notes from JSON, Markdown or plain text files. Kigel skills import and export as Markdown with YAML frontmatter.</li>
+      <li><strong>Dictate.</strong> On-device speech recognition through <code>SFSpeechRecognizer</code> (Italian locale).</li>
+      <li><strong>Use Siri and Shortcuts.</strong> 17 App Intents, with 9 registered as Siri shortcuts.</li>
+      <li><strong>Work with an assistant.</strong> OpenAI, Anthropic, Ollama or Apple Intelligence through Foundation Models, with keys in the Keychain.</li>
+      <li><strong>Sync optionally.</strong> Pull and push blocks to Appwrite, with a URLSession WebSocket for realtime when the endpoint is a hostname.</li>
+      <li><strong>Import.</strong> Notes from JSON, Markdown or plain text; Kigel skills import and export as Markdown with YAML frontmatter.</li>
+      <li><strong>Drive it with an agent.</strong> The MCP server exposed in the Mac settings provides 34 tools, resources and prompts over loopback HTTP.</li>
     </ul>
 
     <h3>Platforms</h3>
     <table>
       <thead><tr><th>Target</th><th>Minimum</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td>iPhone</td><td>iOS 18</td><td>Mobile shell with Home, Chat and Note tabs.</td></tr>
-        <tr><td>iPad</td><td>iPadOS 18</td><td>Pencil drawing and Scribble; navigation split view.</td></tr>
-        <tr><td>Mac</td><td>macOS 15</td><td>Same SwiftUI sources, sidebar plus editor.</td></tr>
+        <tr><td>iPhone</td><td>iOS 18</td><td>Mobile shell; no MCP server, App Intents only.</td></tr>
+        <tr><td>iPad</td><td>iPadOS 18</td><td>Pencil drawing and Scribble. The MCP runtime exists, but the current iPad UI has no Server MCP toggle.</td></tr>
+        <tr><td>Mac</td><td>macOS via Catalyst / Designed for iPad</td><td>Catalyst is used for the DMG release. A native macOS target is not in the project yet.</td></tr>
       </tbody>
     </table>
 
     <h3>Limitations</h3>
     <ul>
-      <li>The repository contains Swift sources but <strong>no Xcode project</strong>. You create the project and add the Appwrite Swift package yourself.</li>
-      <li>CloudKit is not active: the iCloud entitlements are commented out and the store is local. The sharing sheet and the CloudKit share code are present but cannot work without that capability.</li>
-      <li>The Apple, Google, Microsoft, Passkey and SSO buttons on the sign-in screen are placeholders, except Apple sign-in, which is a local mock. The working paths are email/password against Appwrite, or <em>Continue without an account</em>.</li>
-      <li>No Windows, Android or Linux target is planned for this architecture.</li>
-      <li>The built-in Apple Intelligence provider is a stub: it waits, returns a canned block list and echoes the prompt. It needs no key and opens no connection, but it does not run a real model. OpenAI, Anthropic and Ollama are real HTTP clients.</li>
-      <li>Appwrite realtime requires a hostname. Direct IP endpoints are refused for the WebSocket subscription, so sync can be configured but realtime will not start.</li>
-      <li>There is no MCP server. The App Intents are the only agent-facing surface.</li>
-      <li>Nothing has been released; the documentation follows the current source, not a shipped build.</li>
+      <li>No native macOS target: Mac support is Mac Catalyst and <em>Designed for iPad</em>. The Catalyst build needs the Appwrite and SwiftNIO packages resolved by Xcode.</li>
+      <li>CloudKit is not active: the iCloud entitlements are commented out and the store is local. The sharing sheet and CloudKit share code exist but cannot work without that capability.</li>
+      <li>The Google, Microsoft, Passkey and SSO buttons are placeholders. Apple sign-in is a local mock. Working paths are email/password with Appwrite, or <em>Continue without an account</em>.</li>
+      <li>Appwrite realtime requires a hostname; a direct IP endpoint is refused for the WebSocket subscription.</li>
+      <li>Apple Intelligence requires iOS 26 / macOS 26, an eligible device and Apple Intelligence enabled. It now throws an explicit error when unavailable instead of faking a response.</li>
+      <li>The MCP server is exposed in the Mac settings only, is off by default and listens on loopback. The transport can bind on iPadOS, but the iPad UI does not expose it yet; iPhone has no server and keeps the App Intents.</li>
+      <li>Siri shortcuts need the Siri capability; <code>com.apple.developer.siri</code> is present but commented in the entitlements.</li>
+      <li>The published DMG is ad-hoc signed; Developer ID signing and notarization are still needed for a warning-free distribution.</li>
     </ul>
 
     <h2 id="technical">Technical documentation</h2>
     <h3>Repository layout</h3>
     <pre><code>IgelNotes/
-├── ContentView.swift          # Mac/iPad split view; iPhone uses MobileContentView
-├── IgelNotesApp.swift         # ModelContainer + AppShortcutsProvider
-├── Models/                    # SwiftData models, enums, provider config
-├── Views/                     # Editor, blocks, sidebar, mobile shell, settings
-├── ViewModels/                # Note list, editor/realtime, AI, table, auth, drawing
-├── Networking/                # OpenAI, Anthropic, Ollama, Apple Intelligence, Appwrite
-├── Services/                  # Speech recognition, AI action executor
-├── Intents/                   # Create, append, search, open, shopping list
-├── Extensions/                # View, String, PKDrawing helpers
-├── Resources/                 # Info.plist and entitlements
-├── Tests/LogicTests/          # model-logic checks, outside the app target
-└── scripts/verify.sh          # syntax, residue, secret and logic checks</code></pre>
+├── IgelNotes.xcodeproj      # generated from project.yml
+├── project.yml              # iOS 18 app, Catalyst, Swift packages
+├── Domain/                  # note, block, table, tag, workspace services
+├── MCPCore/                 # JSON-RPC, MCP types, policy, audit
+├── MCP/                     # catalog, 34 tools, resources, prompts, loopback HTTP
+├── Models/                  # SwiftData models, enums, provider config
+├── Views/                   # SwiftUI, editor, mobile shell, settings
+├── ViewModels/              # note list, editor/realtime, AI, table, auth
+├── Networking/              # OpenAI, Anthropic, Ollama, Apple Intelligence, Appwrite
+├── Services/                # speech recognition, AI action executor
+├── Intents/                 # 17 App Intents
+├── Extensions/              # View, String, PKDrawing helpers
+├── Resources/               # Info.plist, entitlements, macOS entitlements
+├── Tests/                   # logic and MCP tests
+└── scripts/verify.sh        # 5-step verification</code></pre>
 
     <h3>Data model (SwiftData)</h3>
     <table>
       <thead><tr><th>Model</th><th>Key fields</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td><code>Note</code></td><td><code>id</code>, <code>title</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>lastOpenedAt</code>, <code>blocks</code>, <code>tags</code>, <code>workspace</code>, <code>createdVia</code>, <code>isFavorite</code>, <code>emoji</code>, <code>coverImageName</code>, <code>coverYOffset</code>, <code>sharingStatus</code>, <code>isDeleted</code>, <code>deletedAt</code>, <code>parentNote</code>, <code>childNotes</code>, <code>sharedRecordID</code></td><td>Blocks cascade-delete. <code>createdVia</code> is <code>manual</code>, <code>siri</code>, <code>appwrite</code> or <code>telegram</code>.</td></tr>
-        <tr><td><code>NoteBlock</code></td><td><code>id</code>, <code>typeRawValue</code>, <code>content</code>, <code>isChecked</code>, <code>sortOrder</code>, timestamps, <code>tableData</code>, <code>drawingData</code>, <code>imageData</code>, <code>metadata</code>, <code>note</code>, <code>linkedNote</code></td><td>Table, drawing and image payloads use external storage. Metadata is JSON.</td></tr>
+        <tr><td><code>Note</code></td><td><code>id</code>, <code>title</code>, timestamps, <code>blocks</code>, <code>tags</code>, <code>workspace</code>, <code>createdVia</code>, <code>isFavorite</code>, emoji/cover, trash fields, <code>parentNote</code>, <code>sharedRecordID</code></td><td>Blocks cascade-delete; <code>createdVia</code> is manual, siri, appwrite or telegram.</td></tr>
+        <tr><td><code>NoteBlock</code></td><td><code>id</code>, <code>typeRawValue</code>, <code>content</code>, <code>isChecked</code>, <code>sortOrder</code>, timestamps, <code>tableData</code>, <code>drawingData</code>, <code>imageData</code>, <code>metadata</code>, <code>note</code>, <code>linkedNote</code></td><td>Table, drawing and image payloads use external storage.</td></tr>
         <tr><td><code>Workspace</code></td><td>name and note relationship</td><td>Groups notes; the active workspace filters the list.</td></tr>
         <tr><td><code>AIChat</code> / <code>AIChatMessage</code></td><td>messages and provider context</td><td>Assistant conversations.</td></tr>
-        <tr><td><code>KigelSkill</code></td><td><code>name</code>, <code>skillDescription</code>, <code>markdownContent</code>, <code>isBuiltIn</code></td><td>Reusable instruction blocks injected into the system prompt.</td></tr>
-        <tr><td><code>Agent</code></td><td><code>id</code>, <code>name</code>, <code>type</code></td><td>Only one agent row (<code>KIgel AI</code>) is kept; no endpoint or model lives here.</td></tr>
+        <tr><td><code>KigelSkill</code></td><td><code>name</code>, <code>skillDescription</code>, <code>markdownContent</code>, <code>isBuiltIn</code></td><td>Instructions injected into the system prompt; four built-ins.</td></tr>
+        <tr><td><code>Agent</code></td><td><code>id</code>, <code>name</code>, <code>type</code></td><td>Only the KIgel AI row is kept.</td></tr>
       </tbody>
     </table>
 
@@ -146,11 +148,10 @@
         <tr><td>Pages</td><td><code>page</code>, <code>linkToPage</code></td></tr>
       </tbody>
     </table>
-    <p><code>BlockType</code> also defines display names and SF Symbols, which the block menu and keyboard toolbar share. <code>NoteTemplate</code> builds the initial block sequence for each template, including a three-column table for the shopping list.</p>
 
-    <h2 id="sync">Sync and auth</h2>
+    <h2 id="sync">Sync, storage and authentication</h2>
     <h3>Local store</h3>
-    <p><code>IgelNotesApp</code> builds a <code>ModelContainer</code> with the schema <code>Workspace</code>, <code>Agent</code>, <code>Note</code>, <code>NoteBlock</code>, <code>AIChat</code>, <code>AIChatMessage</code> and <code>KigelSkill</code>, using a configuration named <code>IgelNotes</code>. There is no CloudKit container and no network dependency for editing.</p>
+    <p><code>IgelNotesApp</code> builds a <code>ModelContainer</code> with <code>Workspace</code>, <code>Agent</code>, <code>Note</code>, <code>NoteBlock</code>, <code>AIChat</code>, <code>AIChatMessage</code> and <code>KigelSkill</code>, using the named configuration <code>IgelNotes</code>. There is no CloudKit container.</p>
 
     <h3>Appwrite (optional)</h3>
     <table>
@@ -158,91 +159,113 @@
       <tbody>
         <tr><td><code>isEnabled</code>, <code>endpoint</code>, <code>projectId</code>, <code>databaseId</code>, <code>collectionId</code></td><td>UserDefaults, key <code>appwriteConfig</code></td></tr>
         <tr><td>API key</td><td>Keychain, service <code>&lt;bundle id&gt;.appwrite</code>, account <code>apiKey</code></td></tr>
+        <tr><td>Provider config</td><td>UserDefaults, key <code>igelnotes_aiprovider_config</code></td></tr>
+        <tr><td>Provider keys</td><td>Keychain, service <code>com.igelnotes.aiprovider</code></td></tr>
+        <tr><td>MCP token</td><td>Keychain, service <code>com.igelnotes.mcp</code>, account <code>bearer-token</code></td></tr>
       </tbody>
     </table>
     <ul>
-      <li>Configuration is empty by default. Nothing is enabled until the user fills endpoint, project, database and collection and turns the toggle on.</li>
-      <li>The service lists documents in the configured collection and maps them to blocks by <code>noteId</code> and block UUID. Uploads use the block UUID as the document id: update first, create if missing. Deletes remove the document.</li>
-      <li>Notes created from remote blocks get <code>createdVia</code> <code>appwrite</code> (or <code>telegram</code> for ids with that prefix).</li>
-      <li><code>RealtimeViewModel</code> opens an Appwrite Realtime WebSocket and applies incoming create/update/delete events to the local store. It refuses IP hosts because the WebSocket subscription needs a domain name.</li>
-      <li>The SDK is version-sensitive: a client subclass maps Appwrite 1.9's <code>$tableId</code> back to <code>$collectionId</code> so document decoding does not crash.</li>
-      <li>When Appwrite is configured, the editor uses <code>IgelEditorView</code>, which writes through the realtime view model; otherwise it uses the local <code>EditorView</code>.</li>
+      <li>Configuration is empty by default; sync stays off until endpoint, project, database and collection are filled in.</li>
+      <li>Blocks are documents keyed by the block UUID. Upload updates first, then creates; deletes remove the document. The realtime client is implemented with <code>URLSessionWebSocketTask</code> because Appwrite 23 removed the SDK Realtime class.</li>
+      <li>The Xcode project depends on Appwrite 23.4, SwiftNIO and SwiftCollections pinned to 1.6.0; CloudKit remains inactive.</li>
+      <li>Authentication: email/password against Appwrite when configured, or a local workspace. Face ID can lock an existing session. Social buttons are placeholders and Apple sign-in is a mock.</li>
     </ul>
 
-    <h3>Authentication</h3>
-    <ul>
-      <li>With a valid Appwrite configuration, email/password registration and login use the Appwrite Account API and keep a session.</li>
-      <li>Without it, <em>Continue without an account</em> unlocks a local workspace. The session flag and display name live in UserDefaults.</li>
-      <li>Face ID can lock an existing session through LocalAuthentication; the toggle appears only when biometrics are available.</li>
-      <li>Social login buttons are UI placeholders; Apple sign-in currently sets a local mock user instead of performing an OAuth exchange.</li>
-    </ul>
-
-    <h2 id="assistant">Assistant and skills</h2>
+    <h2 id="assistant">Assistant and App Intents</h2>
     <h3>Providers</h3>
     <table>
       <thead><tr><th>Provider</th><th>Needs</th><th>Default model</th></tr></thead>
       <tbody>
-        <tr><td>Apple Intelligence</td><td>No key; simulated on-device service</td><td><code>on-device</code></td></tr>
+        <tr><td>Apple Intelligence</td><td>iOS 26 / macOS 26, eligible device, enabled</td><td><code>on-device</code></td></tr>
         <tr><td>OpenAI</td><td>API key</td><td><code>gpt-4o</code></td></tr>
         <tr><td>Anthropic</td><td>API key</td><td><code>claude-3-5-sonnet-20240620</code></td></tr>
         <tr><td>Ollama</td><td>Base URL, optional key</td><td><code>llama3</code></td></tr>
       </tbody>
     </table>
-    <ul>
-      <li><code>AIProviderConfig</code> stores type, model and optional base URL in UserDefaults under <code>igelnotes_aiprovider_config</code>. The API key is deliberately excluded from <code>Codable</code> and lives in the Keychain, service <code>com.igelnotes.aiprovider</code>, account equal to the provider name.</li>
-      <li>The default provider is Apple Intelligence. In the current source it is a rule-based mock: <code>generateBlocks</code> recognises a few keywords, returns a canned list and otherwise echoes the prompt; <code>generateText</code> does the same. It opens no connection, but it is not a model integration yet.</li>
-      <li>Every provider implements <code>AIAgentService</code>: <code>generateBlocks</code>, <code>fetchAvailableModels</code> and <code>generateText</code>. The standard system prompt forces a JSON object with a <code>blocks</code> array so the reply can be inserted directly.</li>
-      <li><code>NoteActionExecutor</code> parses assistant output for <code>create_note</code>, <code>edit_note</code>, <code>delete_note</code> and <code>read_note</code>, then applies it to SwiftData. Markdown tables are converted to <code>TableData</code>.</li>
-    </ul>
+    <p>Apple Intelligence uses <code>FoundationModels</code>/<code>LanguageModelSession</code>. When the framework or the model is unavailable the service throws an explicit error; the old simulated responses are gone. The other providers are real HTTP clients. <code>AIAgentService</code> exposes <code>generateBlocks</code>, <code>fetchAvailableModels</code> and <code>generateText</code>; the system prompt forces a JSON block response, and <code>NoteActionExecutor</code> applies create/edit/delete/read actions to SwiftData.</p>
 
     <h3>Kigel AI skills</h3>
-    <p>Skills are SwiftData rows containing Markdown instructions. Four built-ins ship with the app: Note Writer, Task Planner, Brainstorm and Analyser. They cannot be deleted. Custom skills import from Markdown with a YAML frontmatter block (<code>name</code>, <code>description</code>) and export in the same format. Active skills are concatenated into the system prompt, so they change how the assistant structures notes without any server-side component.</p>
+    <p>Four built-ins ship with the app: Note Writer, Task Planner, Brainstorm and Analyser. Custom skills import from Markdown with YAML frontmatter and export in the same shape. Active skills are concatenated into the system prompt; they are also exposed over MCP through <code>skills_list</code> and <code>skills_get</code>.</p>
 
     <h3>App Intents</h3>
     <table>
-      <thead><tr><th>Intent</th><th>Parameters</th><th>Effect</th></tr></thead>
+      <thead><tr><th>Group</th><th>Intents</th></tr></thead>
       <tbody>
-        <tr><td><code>CreateNoteIntent</code></td><td>title, content, template, tags</td><td>Creates a note with the template's initial blocks and <code>createdVia: "siri"</code>.</td></tr>
-        <tr><td><code>AppendToNoteIntent</code></td><td>noteTitle, content, blockType</td><td>Finds a note by title and appends a block; types are text, todo, bullet, numbered, heading1, heading2.</td></tr>
-        <tr><td><code>SearchNotesIntent</code></td><td>query, tag, favourites</td><td>Searches title and content, filters by tag or favourites, and returns a snippet view.</td></tr>
-        <tr><td><code>OpenNoteIntent</code></td><td>noteID, title, favourite</td><td>Opens a specific note or the favourite one.</td></tr>
-        <tr><td><code>CreateShoppingListIntent</code></td><td>items</td><td>Splits dictated or typed text into todo blocks.</td></tr>
+        <tr><td>Notes</td><td><code>CreateNoteIntent</code>, <code>AppendToNoteIntent</code>, <code>SearchNotesIntent</code>, <code>OpenNoteIntent</code>, <code>UpdateNoteIntent</code>, <code>DeleteNoteIntent</code>, <code>MoveNoteIntent</code>, <code>DuplicateNoteIntent</code>, <code>ListNotesIntent</code>, <code>GetNoteContentIntent</code></td></tr>
+        <tr><td>Blocks</td><td><code>ToggleTodoIntent</code>, <code>AppendTableRowIntent</code></td></tr>
+        <tr><td>Tags / workspaces</td><td><code>AddTagsIntent</code>, <code>ListTagsIntent</code>, <code>ListWorkspacesIntent</code>, <code>CreateWorkspaceIntent</code></td></tr>
+        <tr><td>Templates</td><td><code>CreateShoppingListIntent</code></td></tr>
       </tbody>
     </table>
-    <p>All five are registered in <code>IgelNotesShortcuts</code> with Italian phrases and set <code>openAppWhenRun = true</code>, so Siri brings the app forward when an intent runs.</p>
+    <p>Nine of them are registered in <code>IgelNotesShortcuts</code> with Italian and English phrases: create note, shopping list, append, search, open, list, get content, toggle todo and add tags. Typed results are returned where the intent supports them.</p>
 
-    <h3>Storage summary</h3>
+    <h2 id="mcp">MCP server</h2>
+    <div class="doc-meta">
+      <span class="pill pill--green">Available in source</span>
+      <span class="pill">Transport: loopback HTTP</span>
+      <span class="pill">34 tools</span>
+      <span class="pill">Off by default</span>
+    </div>
+    <p>The server runs inside the app on Mac, not as a separate binary. It listens only on <code>127.0.0.1</code>, uses <code>POST /mcp</code>, requires a bearer token and is disabled until <strong>Settings → Server MCP</strong> is enabled. The same runtime can bind on iPadOS, but the current iPad UI does not expose the toggle; iPhone has no server.</p>
+
+    <h3>Setup</h3>
+    <ol>
+      <li>Open <strong>Settings → Server MCP</strong>, turn the server on and choose the profile: read, write or destructive. Default is read.</li>
+      <li>Pick a port (default 8765) and copy the generated client configuration. The token lives in the Keychain, service <code>com.igelnotes.mcp</code>; regenerating it invalidates existing clients.</li>
+      <li>The endpoint is <code>http://127.0.0.1:8765/mcp</code> with <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+    </ol>
+    <pre><code>{
+  "mcpServers": {
+    "igelnotes": {
+      "type": "http",
+      "url": "http://127.0.0.1:8765/mcp",
+      "headers": { "Authorization": "Bearer &lt;token&gt;" }
+    }
+  }
+}</code></pre>
+    <p>The HTTP transport accepts one request per connection (<code>Connection: close</code>), a JSON-RPC body up to 1 MiB, and returns JSON. The rate limiter allows 60 requests per minute; the in-memory audit keeps 1000 entries with tool, outcome and duration, never note content.</p>
+
+    <h3>Tools</h3>
     <table>
-      <thead><tr><th>Data</th><th>Where</th></tr></thead>
+      <thead><tr><th>Group</th><th>Tools</th><th>Minimum profile</th></tr></thead>
       <tbody>
-        <tr><td>Notes, blocks, workspaces, skills, chats</td><td>SwiftData store named <code>IgelNotes</code>, local to the app</td></tr>
-        <tr><td>AI provider config</td><td>UserDefaults, <code>igelnotes_aiprovider_config</code></td></tr>
-        <tr><td>AI keys</td><td>Keychain, <code>com.igelnotes.aiprovider</code></td></tr>
-        <tr><td>Appwrite config</td><td>UserDefaults, <code>appwriteConfig</code></td></tr>
-        <tr><td>Appwrite API key</td><td>Keychain, <code>&lt;bundle id&gt;.appwrite</code></td></tr>
-        <tr><td>Session flag and name</td><td>UserDefaults (<code>isAuthenticated</code>, <code>userName</code>)</td></tr>
+        <tr><td>Notes</td><td><code>notes_list</code>, <code>notes_get</code>, <code>notes_search</code>, <code>note_export</code>, <code>notes_create</code>, <code>notes_update</code>, <code>notes_move</code>, <code>notes_duplicate</code>, <code>notes_restore</code>, <code>notes_delete</code></td><td>read for the first four; write for create/update/move/duplicate/restore; destructive for <code>notes_delete</code></td></tr>
+        <tr><td>Blocks</td><td><code>blocks_list</code>, <code>blocks_get</code>, <code>blocks_append</code>, <code>blocks_insert</code>, <code>blocks_update</code>, <code>blocks_move</code>, <code>blocks_convert</code>, <code>blocks_delete</code></td><td>read for list/get; write for append/insert/update/move/convert; destructive for delete</td></tr>
+        <tr><td>Tables</td><td><code>tables_get</code>, <code>tables_add_row</code>, <code>tables_update_cell</code>, <code>tables_add_column</code>, <code>tables_remove_row</code>, <code>tables_remove_column</code></td><td>read for get; write for add/update; destructive for removals</td></tr>
+        <tr><td>Tags</td><td><code>tags_list</code>, <code>tags_add</code>, <code>tags_remove</code></td><td>read, write, write</td></tr>
+        <tr><td>Workspaces</td><td><code>workspaces_list</code>, <code>workspaces_create</code>, <code>workspaces_rename</code>, <code>workspaces_delete</code></td><td>read; write; write; destructive</td></tr>
+        <tr><td>Skills / sync</td><td><code>skills_list</code>, <code>skills_get</code>, <code>sync_status</code></td><td>read</td></tr>
       </tbody>
     </table>
+    <p><code>notes_delete</code> moves a note to the trash with <code>mode: trash</code> or purges it with <code>mode: purge</code>. <code>sync_status</code> reports only whether Appwrite is configured and enabled; it never returns endpoints or credentials. Tool annotations set read-only, destructive and idempotent hints.</p>
+
+    <h3>Resources and prompts</h3>
+    <ul>
+      <li><strong>Resources:</strong> <code>igelnotes://index/notes</code>, <code>/tags</code>, <code>/workspaces</code>, <code>/skills</code>; templates for <code>note/{id}</code> (Markdown), <code>note/{id}/json</code>, <code>block/{id}</code>, <code>table/{id}</code>, <code>skill/{name}</code>, <code>workspace/{id}</code> and <code>note/{id}/attachment/{block_id}</code>.</li>
+      <li><strong>Prompts:</strong> <code>riassumi_nota</code>, <code>estrai_azioni</code>, <code>rivedi_nota</code>, <code>note_riunione</code>, <code>lista_spesa_da_testo</code>.</li>
+      <li><strong>Completions:</strong> note ids/titles, tags, workspaces, block types and export formats are suggested from the live store.</li>
+    </ul>
 
     <h2 id="build">Build and verify</h2>
-    <pre><code># No Xcode project is committed. Create one, add the Appwrite Swift package,
-# then build the iOS/iPadOS/macOS targets with Xcode 16+ and the iOS 18 SDK.
+    <pre><code># Regenerate the Xcode project after changing project.yml
+xcodegen generate
 
-# Static verification, no Appwrite SDK required
+# Build without signing
+xcodebuild -project IgelNotes.xcodeproj -scheme IgelNotes \
+  -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO build
+
+# Mac Catalyst release used for the DMG
+xcodebuild -project IgelNotes.xcodeproj -scheme IgelNotes \
+  -destination 'platform=macOS,variant=Mac Catalyst' \
+  -configuration Release CODE_SIGNING_ALLOWED=NO build
+
+# Static checks, logic and MCP tests (no Appwrite account needed)
 ./scripts/verify.sh</code></pre>
-    <p><code>verify.sh</code> runs four steps: parse every Swift file with <code>xcrun swiftc -parse</code>; reject residue from removed integrations (Hermes, the old agent registry and export payloads); reject secrets assigned as string literals; and compile a standalone logic harness from the models. The harness performs 166 checks on block types, note/block behaviour, templates, table data and skill parsing. It is not a full type-check of the app, because the Appwrite package is not vendored.</p>
-    <div class="callout callout--warn">
-      <span class="dot" aria-hidden="true"></span>
-      <p><strong>CloudKit is a target, not a feature.</strong> The README and the development plan both describe iCloud/CloudKit as the intended sync and Appwrite as temporary. The current tree does the opposite: local store plus Appwrite, with the iCloud entitlements commented out.</p>
-    </div>
+    <p><code>verify.sh</code> now has five steps: parse every Swift file; reject removed-integration residue; reject literal secrets; run 166 logic checks; and run 130 domain/MCP/HTTP checks, including a real loopback server on an ephemeral port. It is not a full Xcode type-check. Dependencies are resolved by Xcode: Appwrite 23.4, SwiftNIO and SwiftCollections 1.6.0.</p>
 
-    <h2 id="mcp">MCP status</h2>
-    <div class="doc-meta">
-      <span class="pill pill--amber">Not implemented</span>
-      <span class="pill">No binary</span>
-      <span class="pill">App Intents only</span>
-    </div>
-    <p>There is no MCP server in the repository and no frozen tool schema. The development plan lists MCP as a perspective: expose the same intents as tools so an agent can search and append without extra credentials. Until that exists, the supported agent surface is the AI provider configuration plus the five App Intents above.</p>
+    <h3>Release</h3>
+    <p>The published release is <code>igelnotes-v1.0.0</code>: <code>IgelNotes-macOS-v1.0.0.dmg</code> in <code>Chuucommie/IgelTools-Releases</code>, with <code>channels/igelnotes.json</code> for the updater. The project's current marketing version is 1.0.1. The DMG is ad-hoc signed; Developer ID signing and notarization are still required for a warning-free install.</p>
 
     <div class="docs-next">
       <span>Next</span>

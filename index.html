@@ -42,8 +42,10 @@
     <h2>Agents</h2>
     <a href="mcp/index.html">MCP overview</a>
     <a href="apps/igellauncher.html#mcp">Launcher MCP</a>
-    <a href="apps/igelserver.html#mcp">Server status</a>
-    <span class="side-note">Protocol 2025-06-18<br>Transport: stdio<br>All servers are local.</span>
+    <a href="apps/igelserver.html#mcp">Server MCP</a>
+    <a href="apps/igeltvremote.html#mcp">TVRemote MCP</a>
+    <a href="apps/igelnotes.html#mcp">Notes MCP</a>
+    <span class="side-note">Protocol 2025-06-18<br>stdio + loopback HTTP<br>All servers are local.</span>
   </aside>
 
   <main class="docs-content" id="main">
@@ -53,7 +55,7 @@
 
     <div class="doc-meta">
       <span class="pill pill--green">MCP protocol 2025-06-18</span>
-      <span class="pill">MCP: launcher only</span>
+      <span class="pill">MCP: all four apps</span>
       <span class="pill">Apple platforms</span>
       <span class="pill pill--amber">Release state varies</span>
     </div>
@@ -68,25 +70,25 @@
       <div class="doc-card">
         <span class="kicker">Living-room control</span>
         <h3>Igel TVRemote</h3>
-        <p>A network remote for smart TVs: discovery, pairing, keys, text and wake-on-LAN. Apple platforms; the core is a Swift package with one adapter per TV protocol.</p>
+        <p>A network remote for smart TVs: discovery, pairing, keys, text, wake-on-LAN, 12 App Intents and a macOS MCP server.</p>
         <p><a href="apps/igeltvremote.html">Functional and technical docs →</a></p>
       </div>
       <div class="doc-card">
         <span class="kicker">Writing and thinking</span>
         <h3>IgelNotes</h3>
-        <p>A 21-type block editor on SwiftUI and SwiftData, with Pencil drawing, Siri intents, an assistant and optional Appwrite sync. CloudKit is planned, not active.</p>
+        <p>A 21-type block editor on SwiftUI and SwiftData, with Pencil drawing, 17 App Intents, Apple Intelligence, optional Appwrite sync and a local MCP server. CloudKit is planned, not active.</p>
         <p><a href="apps/igelnotes.html">Functional and technical docs →</a></p>
       </div>
       <div class="doc-card">
         <span class="kicker">Server control</span>
         <h3>IgelServer</h3>
-        <p>Native macOS and iOS clients for a headless Linux server over SSH: telemetry, systemd, Docker, qBittorrent, SMB shares and an encrypted vault.</p>
+        <p>Native macOS and iOS clients for a headless Linux server over SSH: telemetry, systemd, Docker, qBittorrent, SMB shares, an encrypted vault and a Swift MCP server.</p>
         <p><a href="apps/igelserver.html">Functional and technical docs →</a></p>
       </div>
       <div class="doc-card">
         <span class="kicker">Suite management</span>
         <h3>IgelLauncher</h3>
-        <p>A macOS-only suite manager in Rust and egui: embedded catalog, CPU-aware asset selection, SHA-256 verification, DMG/tar.gz installs, receipts, updates and a 13-tool MCP server.</p>
+        <p>A native SwiftUI macOS suite manager: embedded catalog, CPU-aware asset selection, SHA-256 verification, DMG/tar.gz installs, receipts, updates and a 13-tool MCP server.</p>
         <p><a href="apps/igellauncher.html">Functional and technical docs →</a></p>
       </div>
     </div>
@@ -100,45 +102,55 @@
         <tr>
           <td><strong>Igel TVRemote</strong></td>
           <td>macOS 13+, iOS 17+, watchOS 10+</td>
-          <td>In development; core and macOS suites run in CI</td>
-          <td>No MCP server yet</td>
+          <td>In development; core, macOS and MCP suites run in CI</td>
+          <td><strong>Available:</strong> <code>igeltvremote-mcp</code>, 12 tools (macOS stdio)</td>
         </tr>
         <tr>
           <td><strong>IgelNotes</strong></td>
-          <td>iPhone, iPad, Mac (Apple targets)</td>
-          <td>In development; local store, optional Appwrite sync, CloudKit inactive</td>
-          <td>No MCP server yet; App Intents only</td>
+          <td>iPhone/iPad (iOS 18), Mac via Catalyst / Designed for iPad</td>
+          <td>1.0.0 DMG published; source 1.0.1; CloudKit inactive</td>
+          <td><strong>Available:</strong> in-app loopback HTTP, 34 tools (Mac UI; iPad runtime)</td>
         </tr>
         <tr>
           <td><strong>IgelServer</strong></td>
           <td>macOS 14+, iOS 27</td>
-          <td>In development; macOS tests and iOS build run locally</td>
-          <td>No MCP server; the Rust helper was removed</td>
+          <td>2.2.0 DMG; macOS, iOS and MCP tests</td>
+          <td><strong>Available:</strong> <code>igelserver-mcp</code>, 25 tools (stdio + HTTP)</td>
         </tr>
         <tr>
           <td><strong>IgelLauncher</strong></td>
-          <td>macOS 11+ (Rust/egui)</td>
-          <td>In development; v0.1.0 source, macOS builds and 30 tests</td>
-          <td><strong>Available in source:</strong> <code>igellauncher mcp</code> (13 tools)</td>
+          <td>macOS 13+ (SwiftUI / SwiftPM)</td>
+          <td>v0.1.0 source; native SwiftUI build, no test target yet</td>
+          <td><strong>Available:</strong> <code>IgelLauncher mcp</code>, 13 tools (stdio)</td>
         </tr>
       </tbody>
     </table>
-    <p>Release state differs by app. IgelServer's source version is 2.2.0 and its pipeline is set up to publish a DMG update feed; IgelLauncher is at 0.1.0; the macOS, iOS and watchOS TVRemote targets and IgelNotes have no published release yet. The source repositories are private.</p>
+    <p>IgelServer 2.2.0 and IgelNotes 1.0.0 publish signed (ad-hoc for Notes) DMGs through <em>Chuucommie/IgelTools-Releases</em> with per-app tag prefixes and stable JSON feeds. IgelLauncher is at 0.1.0 with no signed installer yet. Igel TVRemote still has no published release. The source repositories are private.</p>
 
     <h2 id="agents">For agents</h2>
-    <p>An MCP server is the suite's goal, not a shipped property of every app. <strong>IgelLauncher</strong> is the only current implementation. IgelServer lost its Rust <code>igelserver-mcp</code> helper when the Tauri client was removed, and Igel TVRemote and IgelNotes expose App Intents but no MCP server. The <a href="mcp/index.html">MCP overview</a> records that status, the conventions a future server must follow, and how to register the launcher.</p>
-    <pre><code># IgelLauncher — catalog, installs, updates, settings
-igellauncher mcp</code></pre>
-    <p>The existing server speaks JSON-RPC over stdio, writes logs to stderr, and never exposes secrets in tool results. Tools that change the machine are annotated as non-read-only so an MCP host can ask for approval.</p>
+    <p>All four apps now expose a Model Context Protocol surface. Three are separate stdio binaries; IgelNotes runs an in-app loopback HTTP server on Mac (the transport can bind on iPadOS, but the iPad UI does not expose it yet).</p>
+    <pre><code># IgelLauncher — catalog, installs, updates (stdio)
+IgelLauncher mcp
+
+# IgelServer — profiles, SSH, Docker, systemd, torrents
+igelserver-mcp                 # stdio
+igelserver-mcp --http          # POST http://127.0.0.1:8787/mcp
+
+# Igel TVRemote — saved TVs, keys, text, power (stdio)
+igeltvremote-mcp
+
+# IgelNotes — in-app HTTP on Mac (iPadOS runtime exists)
+http://127.0.0.1:8765/mcp      # Bearer token, Settings → Server MCP</code></pre>
+    <p>The <a href="mcp/index.html">MCP overview</a> covers transports, registration, scopes, tokens and security. Tools that change state are annotated as non-read-only; IgelServer additionally gates write and destructive tools behind scopes and elicitation.</p>
 
     <h2 id="quick-links">Quick links</h2>
     <ul>
       <li><a href="architecture.html">Architecture and shared conventions</a> — storage, security, releases, MCP rules.</li>
-      <li><a href="mcp/index.html">MCP overview</a> — status, conventions and how to register the launcher.</li>
-      <li><a href="apps/igellauncher.html">IgelLauncher</a> — install pipeline, checksums, launcher MCP tools.</li>
-      <li><a href="apps/igelserver.html">IgelServer</a> — native macOS/iOS clients, SSH queue, vault, routing.</li>
-      <li><a href="apps/igeltvremote.html">Igel TVRemote</a> — TV protocols, discovery, pairing, credentials.</li>
-      <li><a href="apps/igelnotes.html">IgelNotes</a> — 21 block types, SwiftData, Appwrite, intents.</li>
+      <li><a href="mcp/index.html">MCP overview</a> — four servers, transports, registration and security.</li>
+      <li><a href="apps/igellauncher.html">IgelLauncher</a> — SwiftUI suite manager, install pipeline, checksums, MCP.</li>
+      <li><a href="apps/igelserver.html">IgelServer</a> — macOS/iOS clients, SSH queue, vault, 25-tool MCP.</li>
+      <li><a href="apps/igeltvremote.html">Igel TVRemote</a> — TV protocols, intents, watch, 12-tool MCP.</li>
+      <li><a href="apps/igelnotes.html">IgelNotes</a> — block model, SwiftData, Appwrite, 34-tool MCP.</li>
       <li><a href="https://chuucommie.github.io/igeltools-web/" target="_blank" rel="noreferrer">Marketing site ↗</a></li>
     </ul>
 
