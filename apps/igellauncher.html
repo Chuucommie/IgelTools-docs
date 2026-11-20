@@ -275,7 +275,7 @@ IgelLauncher --mcp</code></pre>
 
     <h2 id="notes">Limits and security notes</h2>
     <ul>
-      <li><strong>macOS only.</strong> No Linux or Windows build, and no cross-platform runtime.</li>
+      <li><strong>macOS only.</strong> The app is built with SwiftUI and has no cross-platform runtime.</li>
       <li><strong>No signature verification.</strong> Integrity means SHA-256; the launcher does not check Developer ID or notarization before copying a bundle.</li>
       <li><strong>Token on disk.</strong> <code>github_token</code> is plain text in <code>settings.json</code>.</li>
       <li><strong>Self-update is download-only</strong> and does not enforce <code>require_checksum</code>; it verifies only when a checksum is published.</li>

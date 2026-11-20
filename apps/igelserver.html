@@ -46,23 +46,23 @@
     <a href="#storage">Storage and security</a>
     <a href="#build">Build and release</a>
     <a href="#mcp">MCP server</a>
-    <span class="side-note">Clients: macOS 14+ · iOS 27<br>SSH + Swift MCP (stdio/HTTP)<br>No agent on the server.</span>
+    <span class="side-note">Clients: macOS 14+ · iOS 27<br>MCP: macOS stdio/HTTP · iOS foreground<br>No agent on the server.</span>
   </aside>
 
   <main class="docs-content" id="main">
     <p class="breadcrumb"><a href="../index.html">Docs</a> / Apps / IgelServer</p>
     <h1>IgelServer</h1>
-    <p class="lede">Native Apple clients for a headless Linux server over SSH: telemetry, systemd, Docker, qBittorrent, processes, logs, SMB shares and an encrypted credential vault. macOS and iOS are separate UIs over the same server profile model.</p>
+    <p class="lede">Native Apple clients for a headless server over SSH: telemetry, systemd, Docker, qBittorrent, processes, logs, SMB shares and an encrypted credential vault. macOS and iOS are separate UIs over the same server profile model.</p>
 
     <div class="doc-meta">
       <span class="pill pill--blue">macOS 14+ · iOS 27</span>
       <span class="pill">Swift 6 · SwiftUI · SwiftPM</span>
-      <span class="pill pill--amber">v2.2.0 · DMG</span>
-      <span class="pill pill--green">MCP: stdio + HTTP</span>
+      <span class="pill pill--amber">Native clients in development</span>
+      <span class="pill pill--green">MCP: macOS stdio/HTTP · iOS foreground</span>
     </div>
 
     <h2 id="overview">Overview</h2>
-    <p>IgelServer keeps server profiles on the client and connects to the host you already administer. There is no agent installed on the server and no IgelTools relay. The client platform is Apple-only; the remote host can be any Linux or Unix machine reachable over SSH.</p>
+    <p>IgelServer keeps server profiles on the client and connects to the host you already administer. There is no agent installed on the server and no IgelTools relay. The client platform is Apple-only; the remote host can be any Unix machine reachable over SSH.</p>
     <p>Two clients exist in the repository. The macOS app is a Swift Package Manager executable named <code>ServerPulse</code> (the historical target name) built with SwiftUI and some AppKit integration. The iOS app is a separate Xcode project under <code>ios/</code>, written for iOS 27 with Observation, strict concurrency and Liquid Glass. They share the concepts of a profile and a command set, not a codebase or a database.</p>
 
     <h2 id="functional">Functional documentation</h2>
@@ -98,12 +98,12 @@
 
     <h3>Limitations</h3>
     <ul>
-      <li>There is no Linux, Windows or Steam Deck client in the current tree. The client is Apple-only; the server you connect to can be any Linux or Unix host reachable over SSH.</li>
-      <li>The MCP helper is macOS-only. The iOS app keeps App Intents instead; a stdio or loopback HTTP server cannot run in the iOS sandbox.</li>
+      <li>The client is Apple-only; the server you connect to can be any Unix host reachable over SSH.</li>
+      <li>The macOS MCP helper is stdio/HTTP. On iOS an MCP server runs only while the app is in the foreground, reachable on the local network through Bonjour with a bearer token.</li>
       <li>The terminal is a command runner with a timeout, not an interactive PTY.</li>
       <li>The macOS vault file is rewritten in place, so an interrupted save can truncate it; keep a backup if the contents matter.</li>
       <li>macOS and iOS keep separate profiles; there is no profile sync between them.</li>
-      <li>The iOS target requires the iOS 27 SDK and Xcode 27. There is no App Store build; the macOS client is distributed as a DMG.</li>
+      <li>The iOS target requires the iOS 27 SDK and Xcode 27. There is no App Store build. The public 2.2.0 DMG predates the native macOS/iOS clients, which are not released yet.</li>
       <li>qBittorrent control expects its WebUI on the profile's port, reachable directly or through an SSH-tunnelled <code>curl</code> on the server.</li>
     </ul>
 
@@ -198,6 +198,7 @@
     </ul>
 
     <h2 id="build">Build and release</h2>
+    <p>The current source builds the native macOS/iOS clients and the MCP helper. The public 2.2.0 DMG in the release repository is the older client; the native build has not been released yet.</p>
     <pre><code># macOS tests, iOS build-for-testing and MCP tests
 ./ci.sh test
 
@@ -221,11 +222,10 @@
     <h2 id="mcp">MCP server</h2>
     <div class="doc-meta">
       <span class="pill pill--green">Available in source</span>
-      <span class="pill">Binary: <code>igelserver-mcp</code></span>
-      <span class="pill">stdio + Streamable HTTP</span>
-      <span class="pill">25 tools</span>
+      <span class="pill">macOS: <code>igelserver-mcp</code>, 25 tools</span>
+      <span class="pill">iOS: foreground HTTP, 10 tools</span>
     </div>
-    <p>The helper in <code>mcp/</code> is a native Swift package. It depends only on Foundation and <code>/usr/bin/ssh</code>, reads the same profiles as the macOS app, and ships inside the app bundle at <code>Contents/Helpers/igelserver-mcp</code>. The packaging script signs it with the app so the shared Keychain and SSH identity keep working.</p>
+    <p>The helper in <code>mcp/</code> is a native Swift package. It depends only on Foundation and <code>/usr/bin/ssh</code>, reads the same profiles as the macOS app, and ships inside the app bundle at <code>Contents/Helpers/igelserver-mcp</code>. The packaging script signs it with the app so the shared Keychain and SSH identity keep working. The iOS app uses its own foreground-only HTTP server instead of this helper.</p>
 
     <h3>Transports</h3>
     <table>
@@ -236,6 +236,9 @@
       </tbody>
     </table>
     <p>HTTP mode validates the <code>Origin</code>, <code>MCP-Protocol-Version</code>, <code>Mcp-Method</code> and <code>Mcp-Name</code> headers against the body, rate-limits per IP (default 120/min), returns 202 for notifications and JSON (not SSE) for a single JSON-RPC body. If <code>IGELSERVER_HTTP_TOKEN</code> is unset the server generates one and prints it on stderr. The listener is bound to loopback; it is not a public endpoint.</p>
+
+    <h3>iOS foreground server</h3>
+    <p>The iOS app can expose a second MCP surface from <strong>Settings → Server MCP iOS</strong>. It advertises <code>_igelserver-mcp._tcp</code> over Bonjour, serves <code>/mcp</code> and <code>/mcp/server-card</code> with a bearer token, and stops when the app moves to the background. It exposes 10 tools: <code>profiles.list</code>, <code>profiles.get</code>, <code>telemetry.snapshot</code>, <code>docker.list</code>, <code>docker.action</code>, <code>systemd.list</code>, <code>systemd.action</code>, <code>torrent.list</code>, <code>torrent.pause</code> and <code>torrent.resume</code>. Write tools are annotated as non-read-only.</p>
 
     <h3>Configuration</h3>
     <table>
@@ -274,7 +277,7 @@
         </tr>
       </tbody>
     </table>
-    <p>Every tool accepts an optional <code>profile_id</code> unless noted otherwise. The destructive tools require <code>IGELSERVER_SCOPE=destructive</code> and an MCP <code>elicitation/create</code> confirmation before anything runs.</p>
+    <p>Every tool accepts an optional <code>profile_id</code> unless noted otherwise. The destructive tools require <code>IGELSERVER_SCOPE=destructive</code> and an MCP <code>elicitation/create</code> confirmation before anything runs. The iOS server exposes the fixed 10-tool set above and has no scope filter.</p>
 
     <h3>Tasks, resources, prompts and skills</h3>
     <ul>
@@ -297,6 +300,7 @@
   }
 }</code></pre>
     <p>For HTTP mode, start <code>igelserver-mcp --http</code> and point the client at <code>http://127.0.0.1:8787/mcp</code> with <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+    <p>For the iOS server, use the Bonjour endpoint shown in the app, <code>http://&lt;device&gt;.local:8788/mcp</code>, with the bearer token from Settings. The app must stay in the foreground.</p>
 
     <h3>Security and tests</h3>
     <ul>

@@ -59,7 +59,7 @@
       <li><strong>Native.</strong> SwiftUI, SwiftData and AppKit or UIKit on Apple platforms. IgelLauncher is SwiftUI too. No Electron and no web view pretending to be an app.</li>
       <li><strong>One job per app.</strong> The suite grows by addition, not by turning one app into four.</li>
       <li><strong>Published only when built.</strong> A platform is listed as available after it compiles. The same rule applies to MCP: a server is documented as available only when the binary exists.</li>
-      <li><strong>Agents are users too.</strong> Every app now exposes an MCP server, with the same limits as the window. Three use stdio; IgelNotes uses loopback HTTP inside the app.</li>
+      <li><strong>Agents are users too.</strong> Every app now exposes an MCP server, with the same limits as the window. Three use stdio on the Mac; IgelNotes uses loopback HTTP inside the app, and IgelServer adds a foreground-only HTTP server on iOS.</li>
     </ul>
 
     <h2 id="storage">Storage and credentials</h2>
@@ -91,7 +91,7 @@
 
     <h2 id="releases">Releases and updates</h2>
     <p>Apps publish through the shared public repository <code>Chuucommie/IgelTools-Releases</code>. Tags are namespaced per app (<code>igeltvremote-vX.Y.Z</code>, <code>igelnotes-vX.Y.Z</code>, <code>igelserver-vX.Y.Z</code>, <code>igellauncher-vX.Y.Z</code>), so one repository can carry several apps without their assets colliding.</p>
-    <p>Artifact names carry the OS and CPU (<code>macos-aarch64</code>, <code>macos-x86_64</code>), and a release publishes a checksum file or per-asset SHA-256. IgelServer and IgelNotes publish DMGs with stable <code>channels/&lt;app&gt;.json</code> manifests; Igel TVRemote has no published release yet; IgelLauncher is at 0.1.0 without a signed installer.</p>
+    <p>Artifact names carry the OS and CPU (<code>macos-aarch64</code>, <code>macos-x86_64</code>), and a release publishes a checksum file or per-asset SHA-256. IgelNotes publishes a DMG with a stable <code>channels/igelnotes.json</code> manifest. IgelServer's public 2.2.0 DMG predates the native macOS/iOS clients, which are still in development. Igel TVRemote has no published release yet; IgelLauncher is at 0.1.0 without a signed installer.</p>
     <p>IgelLauncher is the reference client for the generic contract:</p>
     <ol>
       <li>Fetch releases for the app's repository (latest stable, or include pre-releases when enabled).</li>
@@ -112,15 +112,15 @@
       <tbody>
         <tr><td>Wire protocol</td><td>JSON-RPC 2.0, newline-delimited on stdio or JSON over HTTP.</td></tr>
         <tr><td>MCP protocol version</td><td><code>2025-06-18</code>; IgelServer HTTP also accepts newer protocol headers, IgelNotes accepts older client versions.</td></tr>
-        <tr><td>Transports</td><td>stdin/stdout for IgelLauncher, IgelServer and Igel TVRemote; loopback HTTP for IgelNotes and optional Streamable HTTP for IgelServer.</td></tr>
-        <tr><td>Binding</td><td>stdio has no listener. HTTP servers bind <code>127.0.0.1</code> only: IgelNotes on 8765, IgelServer on 8787.</td></tr>
-        <tr><td>Auth</td><td>stdio relies on the local process. HTTP requires a bearer token; IgelNotes stores it in the Keychain, IgelServer takes <code>IGELSERVER_HTTP_TOKEN</code> or generates one.</td></tr>
+        <tr><td>Transports</td><td>stdin/stdout for IgelLauncher, the IgelServer macOS helper and Igel TVRemote; loopback HTTP for IgelNotes; optional Streamable HTTP for IgelServer's macOS helper; foreground-only HTTP on the local network for IgelServer iOS.</td></tr>
+        <tr><td>Binding</td><td>stdio has no listener. IgelNotes binds <code>127.0.0.1:8765</code>; IgelServer's macOS helper binds <code>127.0.0.1:8787</code>; the IgelServer iOS server listens on the local network through Bonjour (<code>_igelserver-mcp._tcp</code>) on port 8788 while the app is in the foreground.</td></tr>
+        <tr><td>Auth</td><td>stdio relies on the local process. HTTP requires a bearer token; IgelNotes stores it in the Keychain, the IgelServer macOS helper takes <code>IGELSERVER_HTTP_TOKEN</code> or generates one, and the iOS server shows a per-launch token in Settings.</td></tr>
         <tr><td>Discovery</td><td><code>tools/list</code> returns JSON Schema; resources and prompts are optional. All four expose tools, IgelNotes and IgelServer also expose resources and prompts.</td></tr>
-        <tr><td>Scopes</td><td>IgelServer filters tools by <code>read</code>/<code>write</code>/<code>destructive</code>; IgelNotes filters by the same profile names. The launcher uses per-tool write/destructive hints.</td></tr>
+        <tr><td>Scopes</td><td>IgelServer's macOS helper filters tools by <code>read</code>/<code>write</code>/<code>destructive</code>; IgelNotes filters by the same profile names. The IgelServer iOS server exposes a fixed 10-tool set with write annotations. The launcher and TV remote use per-tool hints and flags.</td></tr>
         <tr><td>Tool results</td><td>One text content block with JSON. Tool failures use <code>isError: true</code>; protocol failures use JSON-RPC errors.</td></tr>
         <tr><td>Annotations</td><td><code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>; network tools set <code>openWorldHint</code> where the host supports it.</td></tr>
         <tr><td>Secrets</td><td>Never returned. Tokens and passwords are reported as boolean <code>*_set</code> fields.</td></tr>
-        <tr><td>Process model</td><td>One local child process per client session, except IgelNotes, whose server lives inside the app.</td></tr>
+        <tr><td>Process model</td><td>One local child process per client session, except IgelNotes and the IgelServer iOS server, which live inside the app.</td></tr>
       </tbody>
     </table>
 
@@ -137,7 +137,7 @@
 
     <h2 id="security">Security model</h2>
     <ul>
-      <li><strong>Local surface.</strong> stdio servers run as the user; HTTP servers bind loopback and require a bearer token. An agent must already be able to start a local process or reach the loopback port.</li>
+      <li><strong>Local surface.</strong> stdio servers run as the user; HTTP servers require a bearer token. IgelNotes and the IgelServer macOS helper bind loopback; the IgelServer iOS server is foreground-only and reachable on the local network, with Local Network permission.</li>
       <li><strong>Same powers as the window.</strong> If a tool can restart a service, the window can too. Tools that write are annotated so the host can require approval.</li>
       <li><strong>Input validation.</strong> Identifiers are allowlisted (unit names, container names, torrent hashes, app ids); there is no arbitrary shell tool.</li>
       <li><strong>Secrets stay in the app.</strong> The server reads them where the app already keeps them; tool results never include them.</li>

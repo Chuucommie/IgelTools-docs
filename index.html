@@ -82,7 +82,7 @@
       <div class="doc-card">
         <span class="kicker">Server control</span>
         <h3>IgelServer</h3>
-        <p>Native macOS and iOS clients for a headless Linux server over SSH: telemetry, systemd, Docker, qBittorrent, SMB shares, an encrypted vault and a Swift MCP server.</p>
+        <p>Native macOS and iOS clients for a headless server over SSH: telemetry, systemd, Docker, qBittorrent, SMB shares, an encrypted vault and a Swift MCP server.</p>
         <p><a href="apps/igelserver.html">Functional and technical docs →</a></p>
       </div>
       <div class="doc-card">
@@ -114,8 +114,8 @@
         <tr>
           <td><strong>IgelServer</strong></td>
           <td>macOS 14+, iOS 27</td>
-          <td>2.2.0 DMG; macOS, iOS and MCP tests</td>
-          <td><strong>Available:</strong> <code>igelserver-mcp</code>, 25 tools (stdio + HTTP)</td>
+          <td>Native macOS/iOS in development; 2.2.0 DMG is the older client</td>
+          <td><strong>Available:</strong> <code>igelserver-mcp</code>, 25 tools (macOS stdio + HTTP); iOS foreground server, 10 tools</td>
         </tr>
         <tr>
           <td><strong>IgelLauncher</strong></td>
@@ -125,16 +125,19 @@
         </tr>
       </tbody>
     </table>
-    <p>IgelServer 2.2.0 and IgelNotes 1.0.0 publish signed (ad-hoc for Notes) DMGs through <em>Chuucommie/IgelTools-Releases</em> with per-app tag prefixes and stable JSON feeds. IgelLauncher is at 0.1.0 with no signed installer yet. Igel TVRemote still has no published release. The source repositories are private.</p>
+    <p>IgelNotes 1.0.0 publishes an ad-hoc-signed DMG through <em>Chuucommie/IgelTools-Releases</em> with per-app tag prefixes and a stable JSON feed. IgelServer's public 2.2.0 DMG predates the native macOS/iOS clients, which are still in development. IgelLauncher is at 0.1.0 with no signed installer yet. Igel TVRemote still has no published release. The source repositories are private.</p>
 
     <h2 id="agents">For agents</h2>
-    <p>All four apps now expose a Model Context Protocol surface. Three are separate stdio binaries; IgelNotes runs an in-app loopback HTTP server on Mac (the transport can bind on iPadOS, but the iPad UI does not expose it yet).</p>
+    <p>All four apps now expose a Model Context Protocol surface. Three are separate stdio binaries; IgelNotes runs an in-app loopback HTTP server on Mac (the transport can bind on iPadOS, but the iPad UI does not expose it yet). IgelServer adds a foreground-only HTTP server on iOS, reachable over the local network with a bearer token.</p>
     <pre><code># IgelLauncher — catalog, installs, updates (stdio)
 IgelLauncher mcp
 
 # IgelServer — profiles, SSH, Docker, systemd, torrents
 igelserver-mcp                 # stdio
 igelserver-mcp --http          # POST http://127.0.0.1:8787/mcp
+
+# IgelServer iOS — foreground only, Bonjour
+http://&lt;device&gt;.local:8788/mcp # Bearer token from Settings
 
 # Igel TVRemote — saved TVs, keys, text, power (stdio)
 igeltvremote-mcp
